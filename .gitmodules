@@ -1,0 +1,6 @@
+[submodule "async-session"]
+	path = async-session
+	url = https://github.com/ultrasuperpingu/async-session.git
+[submodule "warp-sessions"]
+	path = warp-sessions
+	url = https://github.com/ultrasuperpingu/warp-sessions.git
