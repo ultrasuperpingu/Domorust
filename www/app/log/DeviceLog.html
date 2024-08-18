@@ -1,0 +1,32 @@
+<div class="container js-device-logs">
+	<a class="btnstylerev" back-button>{{ ::'Back' | translate }}</a>
+	<a class="btnstyle pull-right"
+	   ng-if="::vm.isReportAvailable()"
+	   ng-href="#/Devices/{{ ::vm.deviceIdx }}/Report"
+	>
+		{{ ::'Report' | translate }}
+	</a>
+
+	<h2 class="page-header">{{ ::vm.pageName }}</h2>
+
+	<register-instant-and-counter></register-instant-and-counter>
+	<register-p1-energy></register-p1-energy>
+	<register-counter></register-counter>
+
+	<device-text-log ng-if="::vm.isTextLog()" device-idx="::vm.deviceIdx"></device-text-log>
+	<device-light-log ng-if="::vm.isLightLog()" device-idx="::vm.deviceIdx"></device-light-log>
+	<device-temperature-log ng-if="::vm.isTemperatureLog()" device="::vm.device"></device-temperature-log>
+	<device-setpoint-log ng-if="::vm.isSetpointLog()" device="::vm.device"></device-setpoint-log>
+	<device-graph-log ng-if="::vm.isGraphLog()" device="::vm.device"></device-graph-log>
+	<device-rain-log ng-if="::vm.isRainLog()" device="::vm.device"></device-rain-log>
+	<device-counter-log ng-if="::vm.isInstantAndCounterLog()" device="::vm.device" subtype="'instantAndCounter'"></device-counter-log>
+	<device-counter-log ng-if="::vm.isP1EnergyLog()" device="::vm.device" subtype="'p1Energy'"></device-counter-log>
+	<device-counter-log ng-if="::vm.isCounterLog() && vm.isEnergyUsedDevice()" device="::vm.device" subtype="'energy-used'"></device-counter-log>
+	<device-counter-log ng-if="::vm.isCounterLog() && vm.isGasDevice()" device="::vm.device" subtype="'gas'"></device-counter-log>
+	<device-counter-log ng-if="::vm.isCounterLog() && vm.isWaterDevice()" device="::vm.device" subtype="'water'"></device-counter-log>
+	<device-counter-log ng-if="::vm.isCounterLog() && vm.isCounterDevice()" device="::vm.device" subtype="'counter'"></device-counter-log>
+	<device-counter-log ng-if="::vm.isCounterLog() && vm.isEnergyGeneratedDevice()" device="::vm.device" subtype="'energy-generated'"></device-counter-log>
+	<device-counter-log ng-if="::vm.isCounterLog() && vm.isTimeDevice()" device="::vm.device" subtype="'time'"></device-counter-log>
+
+	<div class="js-device-log-content"></div>
+</div>

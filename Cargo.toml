@@ -1,0 +1,37 @@
+[package]
+name = "domorust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.39.2", features = ["full"] }
+warp = { version = "0.3.7", features = ["tls"] }
+warp-sessions = { version = "1.0", path = "warp-sessions" }
+#warp-sessions = "1.0"
+async-session = { version = "3.0.0", path = "async-session" }
+#async-session = "3.0.0"
+chrono = { version = "0.4.38", features = ["serde"] }
+#see if using tokio-rusqlite can be a good thing
+rusqlite = { version = "0.31.0", features = ["bundled", "chrono"] }
+#maybe use this to handle database modification
+#rusqlite_migration = "1.2.0"
+serde = { version = "1.0", features = ["derive", "serde_derive"] }
+serde_json = "1.0"
+# to serialize enum with their repr
+#serde_repr = "0.1.19"
+# to serialize structs with dyn Traits
+#erased-serde = "0.4.5"
+#pyo3 = { version = "0.22.2", features = ["extension-module", "auto-initialize"] }
+#roxmltree = "0.20.0"
+#dlopen = "0.1"
+clap = { version = "4.0", features = ["derive", "string"] }
+sunrise = "1.0.0"
+serialport = "4.4.0"
+futures-util = "0.3.30"
+#futures = "0.3.30"
+bytes="1.7.0"
+# to convert enums from/to their repr
+#num-derive = "0.4.2"
+num-traits = "0.2.19"
+#domorust-macros = { version = "0.1", path = "domorust-macros" }
+domorust-models = { version = "0.1", path = "domorust-models" }

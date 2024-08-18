@@ -1,0 +1,18 @@
+[package]
+name = "domorust-models"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+base64 = "0.21.7"
+chrono = { version = "0.4.38", features = ["serde"] }
+# to convert enums from/to their repr
+num-derive = "0.4.2"
+num-traits = "0.2.19"
+pyo3 = { version = "0.22.2", features = ["extension-module", "auto-initialize"] }
+roxmltree = "0.20.0"
+rusqlite = { version = "0.31.0", features = ["bundled", "chrono"] }
+serde = { version = "1.0", features = ["derive", "serde_derive"] }
+# to serialize enum with their repr
+serde_repr = "0.1.19"
+domorust-macros = { version = "0.1", path = "../domorust-macros" }
