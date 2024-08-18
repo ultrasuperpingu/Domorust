@@ -15,11 +15,13 @@ pub fn get_device_timers(dev_idx:usize) -> Result<Vec<Timer>, Box<dyn Error>> {
 	
 	let timers_iter = stmt.query_map([dev_idx], |row| {
 		let timer=Timer {
+			ID:row.get::<usize,usize>(0)?,
 			Active:row.get(1)?,
 			Cmd:row.get(6)?,
 			Color:row.get(8)?,
 			Date: row.get(3)?,
 			Days:row.get(11)?,
+			DeviceRowID:row.get(2)?,
 			Level:row.get(7)?,
 			MDay:row.get(13)?,
 			Month:row.get(12)?,
@@ -28,7 +30,6 @@ pub fn get_device_timers(dev_idx:usize) -> Result<Vec<Timer>, Box<dyn Error>> {
 			Randomness:row.get(9)?,
 			Time: row.get(4)?,
 			Type: FromPrimitive::from_u8(row.get::<usize, u8>(5)?).unwrap_or(TimerType::OnTime),
-			idx:row.get::<usize,usize>(0)?.to_string()
 		};
 		Ok(timer)
 	})?;
@@ -44,11 +45,13 @@ pub fn get_timers(_params: HashMap<String, String>) -> Result<Vec<Timer>, Box<dy
 	let mut stmt = connection.prepare(query)?;
 	let timers_iter = stmt.query_map([], |row| {
 		let timer=Timer {
+			ID:row.get::<usize,usize>(0)?,
 			Active:row.get(1)?,
 			Cmd:row.get(6)?,
 			Color:row.get(8)?,
 			Date: row.get(3)?,
 			Days:row.get(11)?,
+			DeviceRowID:row.get(2)?,
 			Level:row.get(7)?,
 			MDay:row.get(13)?,
 			Month:row.get(12)?,
@@ -57,7 +60,6 @@ pub fn get_timers(_params: HashMap<String, String>) -> Result<Vec<Timer>, Box<dy
 			Randomness:row.get(9)?,
 			Time: row.get(4)?,
 			Type: FromPrimitive::from_u8(row.get::<usize, u8>(5)?).unwrap_or(TimerType::OnTime),
-			idx:row.get::<usize,usize>(0)?.to_string()
 		};
 		Ok(timer)
 	})?;
@@ -72,11 +74,13 @@ pub fn get_timer(idx:usize) -> Result<Timer, Box<dyn Error>> {
 	let query = "SELECT * FROM Timers WHERE ID=?1";
 	let res: Result<Timer, _> = connection.query_row_and_then(query,[idx], |row| {
 		let timer=Timer {
+			ID:row.get::<usize,usize>(0)?,
 			Active:row.get(1)?,
 			Cmd:row.get(6)?,
 			Color:row.get(8)?,
 			Date: row.get(3)?,
 			Days:row.get(11)?,
+			DeviceRowID:row.get(2)?,
 			Level:row.get(7)?,
 			MDay:row.get(13)?,
 			Month:row.get(12)?,
@@ -85,7 +89,6 @@ pub fn get_timer(idx:usize) -> Result<Timer, Box<dyn Error>> {
 			Randomness:row.get(9)?,
 			Time: row.get(4)?,
 			Type: FromPrimitive::from_u8(row.get::<usize, u8>(5)?).unwrap_or(TimerType::OnTime),
-			idx:row.get::<usize,usize>(0)?.to_string()
 		};
 		Ok(timer)
 	});

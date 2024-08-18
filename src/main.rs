@@ -12,8 +12,10 @@ use serde::Serialize;
 use server::routing;
 use warp::Filter;
 use chrono::Local;
+use chrono::DateTime;
 
 use domorust_models::timers::get_next_time_of_timer;
+use domorust_models::timers::Timer;
 use domorust_models::domorust::{Domorust, DomorustConfig};
 use domorust_models::plugins::py_domoticz::PyHardware;
 use domorust_models::plugins::{set_module_context, module_call_function};
@@ -33,19 +35,33 @@ pub fn get_plugin_hardwares() -> Result<Vec<PyHardware<'static>>, Box<dyn Error>
 //TODO: just a dirty hack. need to be implemeted properly
 pub fn setup_timers() {
 	let timers=crate::db::timers::get_timers(HashMap::new()).unwrap();
+	let gps=db::get_latitude_longitude().unwrap_or_default();
+	let (latitude, longitude) = (gps.Latitude, gps.Longitude);
 	let now = Local::now();
 	for t in &timers {
-		let cmd=t.Cmd;
-		match get_next_time_of_timer(t) {
-			Ok(d) => {
-				tokio::spawn(async move {
-					tokio::time::sleep(d.signed_duration_since(now).to_std().unwrap()).await;
+		setup_timer(t, now, latitude, longitude);
+	}
+}
+fn setup_timer(t: &Timer, now: DateTime<Local>,latitude:f64, longitude:f64) {
+	let cmd=t.Cmd;
+	let dev_id=t.DeviceRowID;
+	let t=t.clone();
+	match get_next_time_of_timer(&t, latitude, longitude) {
+		Ok(d) => {
+			tokio::spawn(async move {
+				let duration = d.signed_duration_since(now).to_std();
+				if let Ok(duration) = duration {
+					tokio::time::sleep(duration).await;
 					println!("command {}", cmd);
-					//TODO: send command + configure next time call
-				});
-			},
-			Err(f) => eprintln!("Error preparing timer: {:?}", f),
-		}
+					let _device = db::devices::get_device(dev_id, HashMap::new()).unwrap();
+					//TODO: send command
+					setup_timer(&t, now, latitude, longitude);
+				} else {
+					eprintln!("Error preparing timer: d:{:?}, duration:{:?}", d, duration);
+				}
+			});
+		},
+		Err(f) => eprintln!("Error preparing timer: {:?}", f),
 	}
 }
 //TODO: just a dirty hack. need to be implemeted properly

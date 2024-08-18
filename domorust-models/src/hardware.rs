@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::connection::IConnection;
 use crate::plugins::py_domoticz::PyHardwareType;
 use crate::{plugins, FromHashMap, FromSqlRow, FromSqlTable};
-use crate::device::{Device, IDevice};
+use crate::device::Device;
 //use crate::plugins;
 use crate:: utils::is_neg_or_zero;
 

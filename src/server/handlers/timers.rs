@@ -74,6 +74,7 @@ pub async fn add_timer(dev_id:usize, params: HashMap<String, String>) -> Result<
 	let timer = Timer{
 		Active:active_str.to_lowercase() == "true",
 		Date:date_str.to_string(),
+		DeviceRowID: dev_id,
 		Time:hour_str.to_owned()+":"+min_str,
 		Type:FromPrimitive::from_u8(timer_type).unwrap_or(TimerType::OnTime),
 		Cmd:command,
@@ -85,7 +86,7 @@ pub async fn add_timer(dev_id:usize, params: HashMap<String, String>) -> Result<
 		MDay:mday,
 		Occurence:occurence,
 		Persistant:false,
-		idx:"0".to_string()
+		ID:0
 	};
 	match db::timers::add_timer(dev_id, &timer) {
 		Ok(()) => Ok(reply::with_status(reply::json(&RequestResult::<String>::new("UpdateTimer", vec![])),http::StatusCode::OK)),
@@ -122,6 +123,7 @@ pub async fn update_timer(idx: usize,params: HashMap<String, String>) -> Result<
 	let timer = Timer{
 		Active:active_str.to_lowercase() == "true",
 		Date:date_str.to_string(),
+		DeviceRowID: _vunit_str.parse().unwrap(),
 		Time:hour_str.to_owned()+":"+min_str,
 		Type:FromPrimitive::from_u8(timer_type).unwrap_or(TimerType::OnTime),
 		Cmd:command,
@@ -133,7 +135,7 @@ pub async fn update_timer(idx: usize,params: HashMap<String, String>) -> Result<
 		MDay:mday,
 		Occurence:occurence,
 		Persistant:false,
-		idx:idx.to_string()
+		ID:idx
 	};
 	match db::timers::update_timer(idx, &timer) {
 		Ok(()) => {

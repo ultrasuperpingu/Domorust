@@ -15,7 +15,7 @@ pub(crate) mod users;
 use std::error::Error;
 
 use chrono::{Datelike, Duration, Local};
-use create::{create_tables_if_needed, migrate_from_domoticz};
+use create::{create_tables_if_needed, migrate_from_domoticz, set_default_values};
 use domorust_models::{device::TempHumBaroData, settings::{ConfigResponseSettings, GPSCoord}, FromSqlRowFields};
 use rusqlite::{Connection, Result};
 
@@ -33,10 +33,11 @@ use rusqlite::{Connection, Result};
 /// Returns a Db type that either contains customer data
 /// or is empty.
 pub fn init_db() {
+	// panics if error
 	migrate_from_domoticz().unwrap();
 	
-	// panics if error
 	create_tables_if_needed().unwrap();
+	let _= set_default_values();
 }
 
 pub fn get_graph_data(idx: usize, sensor:&String, range:&String) -> Result<Vec<TempHumBaroData>, rusqlite::Error> {

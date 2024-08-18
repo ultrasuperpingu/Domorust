@@ -15,4 +15,5 @@ rusqlite = { version = "0.31.0", features = ["bundled", "chrono"] }
 serde = { version = "1.0", features = ["derive", "serde_derive"] }
 # to serialize enum with their repr
 serde_repr = "0.1.19"
+sunrise = "1.0.0"
 domorust-macros = { version = "0.1", path = "../domorust-macros" }

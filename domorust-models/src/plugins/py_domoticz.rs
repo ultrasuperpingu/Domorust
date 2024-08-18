@@ -3,7 +3,7 @@ use std::{collections::HashMap, error::Error, path::PathBuf};
 use pyo3::prelude::*;
 use serde::Serialize;
 
-use crate::{connection::IConnection, device::{Device, DeviceData, IDevice}, hardware::{HardwareData, HardwareTypeData, IHardware, IHardwareType}};
+use crate::{connection::IConnection, device::{Device, DeviceData}, hardware::{HardwareData, HardwareTypeData, IHardware, IHardwareType}};
 
 use super::{module_call_function, module_call_function1, set_module_context, PyConnection};
 
@@ -229,10 +229,13 @@ impl PyDevice {
 		println!("Delete Device");
 	}
 }
+pub fn get_pydevice(d:DeviceData) -> PyDevice {
+	PyDevice{device:d}
+}
 pub fn get_pydevices(datas: Vec<DeviceData>) -> Vec<PyDevice> {
 	let mut res=vec![];
 	for d in datas {
-		res.push(PyDevice{device:d});
+		res.push(get_pydevice(d));
 	}
 	res
 }

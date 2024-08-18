@@ -4,8 +4,8 @@
 use std::collections::HashMap;
 use std::fs;
 use std::error::Error;
-use chrono::{DateTime, Datelike, Local, Utc};
-use domorust_models::domorust::DomorustConfig;
+use chrono::Local;
+use domorust_models::{domorust::DomorustConfig, timers::sun_rise_set};
 use serde::Serialize;
 
 use crate::{db, domoticz::consts::{METER_TYPES, SWITCH_TYPES}};
@@ -236,10 +236,8 @@ pub fn get_sun_rise_set() -> Result<GetSunRiseSetResponse,Box<dyn Error>> {
 	let now=Local::now();
 	sunconf.ServerTime = now.format("%Y-%m-%d %H:%M:%S").to_string();
 	let (latitude,longitude) = db::get_latitude_longitude()?.to_tuple();
-	let (sunrise_unix, sunset_unix) = sunrise::sunrise_sunset(latitude, longitude, now.year(), now.month(), now.day());
-	let sunrise_dt: DateTime<Local> = DateTime::from(DateTime::from_timestamp(sunrise_unix, 0).unwrap_or(Utc::now()));
+	let (sunrise_dt, sunset_dt) = sun_rise_set(latitude, longitude, now);
 	sunconf.Sunrise = sunrise_dt.format("%H:%M").to_string();
-	let sunset_dt: DateTime<Local> = DateTime::from(DateTime::from_timestamp(sunset_unix, 0).unwrap_or(Utc::now()));
 	sunconf.Sunset = sunset_dt.format("%H:%M").to_string();
 	let day_duration=sunset_dt.signed_duration_since(sunrise_dt);
 	let day_dur_secs=day_duration.num_seconds();

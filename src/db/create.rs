@@ -792,10 +792,10 @@ pub fn create_tables_if_needed() -> Result<(), rusqlite::Error> {
 
 pub fn set_default_values() -> Result<(), Box<dyn Error>> {
 	let connection = Connection::open("domorust.db").unwrap();
-	connection.execute("PRAGMA journal_mode = WAL", [])?;
-	connection.execute("PRAGMA synchronous = NORMAL", [])?;
-	connection.execute("PRAGMA foreign_keys = ON", [])?;
-	connection.execute("PRAGMA busy_timeout = 1000", [])?;
+	connection.query_row("PRAGMA journal_mode = WAL", [], |_row|{Ok(())})?;
+	connection.query_row("PRAGMA synchronous = NORMAL", [], |_row|{Ok(())})?;
+	connection.query_row("PRAGMA foreign_keys = ON", [], |_row|{Ok(())})?;
+	connection.query_row("PRAGMA busy_timeout = 1000", [], |_row|{Ok(())})?;
 
 	let result = connection.query_row("SELECT name FROM sqlite_master WHERE type='table' AND name='DeviceStatus'",[], |_row| {
 		Ok(())
