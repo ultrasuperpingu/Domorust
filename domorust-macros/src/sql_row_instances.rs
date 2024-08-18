@@ -107,7 +107,7 @@ pub fn expand_derive_fromsql_table(input: &syn::DeriveInput) -> syn::Result<Toke
 				let mut where_clause = "".to_string();
 				#where_clause;
 				let query = format!(concat!("SELECT ",#columns_list," FROM ", #table, " WHERE {}"), where_clause);
-				println!("{}", query);
+				//println!("{}", query);
 				let mut stmt = connection.prepare(query.as_str())?;
 				let iter = stmt.query_map([], |row| {
 					let item=#struct_name::build_from_row(row)?;

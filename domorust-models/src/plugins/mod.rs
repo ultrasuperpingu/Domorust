@@ -110,8 +110,8 @@ fn test_launch_on_start(path: &PathBuf) -> PyResult<()>
 			}"###),("Mode3",""),("Mode4",""),("Mode5",""),("Mode6",""),("Address",""),("Port","")].into_py_dict_bound(py));
 		let devices=HashMap::<u32, Bound<DeviceData>>::new();
 		let _ = plugin.add("Devices", devices.into_py_dict_bound(py));
-		let test = plugin.getattr("onStart")?.call0();
-		println!("{:?}",test);
+		let _test = plugin.getattr("onStart")?.call0();
+		//println!("{:?}",test);
 		_=syspath.del_item(0);
 		Ok(())
 	})
@@ -119,7 +119,7 @@ fn test_launch_on_start(path: &PathBuf) -> PyResult<()>
 
 pub fn load_module(hardware_type: &mut PyHardwareType) -> PyResult<()>
 {
-	println!("{:?}",hardware_type);
+	//println!("{:?}",hardware_type);
 	Python::with_gil(|py| {
 		let sys = py.import_bound("sys")?;
 		let syspath = sys.getattr("path")?.downcast_into::<PyList>()?;
