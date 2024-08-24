@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
-use domorust_models::domorust::Domorust;
 use warp::{filters::host::Authority, reject::Rejection, reply::{self, Reply}};
+
+use crate::DOMORUST;
 
 pub(crate) mod applications;
 pub(crate) mod custom_icons;
@@ -18,7 +19,8 @@ pub(crate) mod timers;
 pub(crate) mod user_variables;
 pub(crate) mod users;
 
-pub async fn redirect_to_https(authority: Option<Authority>, path:warp::filters::path::FullPath, domorust:Domorust) -> Result<impl Reply, Rejection> {
+pub async fn redirect_to_https(authority: Option<Authority>, path:warp::filters::path::FullPath) -> Result<impl Reply, Rejection> {
+	let domorust = DOMORUST.get().unwrap();
 	let authority = authority.unwrap();
 	println!("{}{}", authority, path.as_str());
 	if authority.port_u16() != Some(domorust.cli.port) {

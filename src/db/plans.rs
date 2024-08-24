@@ -7,7 +7,7 @@ use rusqlite::Connection;
 
 pub fn get_floorplans(params: HashMap<String, String>) -> Result<Vec<FloorPlan>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let mut res=FloorPlan::build_from_table(&connection, &params)?;
+	let mut res=FloorPlan::get_items_from_table(&connection, &params)?;
 	for d in res.iter_mut() {
 		d.Image="domorust-api/floorplans/".to_string()+d.ID.to_string().as_str()+"/image";
 		d.Plans = connection.query_row("SELECT COUNT(*) FROM Plans WHERE FloorplanID=?1", [d.ID], |row| {
@@ -31,14 +31,14 @@ pub fn get_floorplan_image(idx: usize) -> Result<Vec<u8>, Box<dyn Error>> {
 }
 pub fn get_plans(params: HashMap<String, String>) -> Result<Vec<Plan>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let res=Plan::build_from_table(&connection, &params)?;
+	let res=Plan::get_items_from_table(&connection, &params)?;
 	Ok(res)
 }
 pub fn get_plan(idx:usize, params: HashMap<String, String>) -> Result<Plan, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
 	let mut params=params.clone();
 	params.insert("idx".to_string(), idx.to_string());
-	let mut res=Plan::build_from_table(&connection, &params)?;
+	let mut res=Plan::get_items_from_table(&connection, &params)?;
 	// TODO: Raise error if more than one row
 	res.pop().ok_or(rusqlite::Error::QueryReturnedNoRows.into())
 }
@@ -75,7 +75,7 @@ pub fn get_plan_devices(floorplanidx:usize, _params: HashMap<String, String>) ->
 	let mut stmt = connection.prepare(query)?;
 	let mut res = vec![];
 	let dev_iter=stmt.query_map([floorplanidx], |row| {
-		DeviceData::build_from_row(row)
+		DeviceData::get_from_row(row)
 	})?;
 	for h in dev_iter.flatten() {
 		res.push(h);

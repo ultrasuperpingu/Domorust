@@ -1,12 +1,14 @@
 use std::{collections::HashMap, convert::Infallible};
+use domorust_macros::route;
 use domorust_models::hardware::HardwareData;
-use warp::reply;//::{self, Reply, Response};
+use warp::reply::{self, Reply};
 use warp::http::StatusCode;
 
 
 use crate::server::responses::{RequestError, RequestResult};
 use crate::db::hardwares::{get_hardware_data, get_hardwares_data};
 
+#[route(path=("domorust-api" / "hardwares"), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_hardwares(params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	let hws = get_hardwares_data(params);
 	match hws {
@@ -20,6 +22,7 @@ pub async fn get_hardwares(params: HashMap<String, String>) -> Result<impl warp:
 		},
 	}
 }
+#[route(path=("domorust-api" / "hardwares" / usize), method="GET", query_params=false, needed_rights=0)]
 pub async fn get_hardware(idx : usize) -> Result<impl warp::Reply, Infallible> {
 	let hd=get_hardware_data(idx);
 	match hd {
@@ -33,16 +36,17 @@ pub async fn get_hardware(idx : usize) -> Result<impl warp::Reply, Infallible> {
 		}
 	}
 }
+#[route(path=("domorust-api" / "hardwares"), method="POST", query_params=true, needed_rights=2)]
 pub async fn add_hardware(params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	println!("add_hardware {:?}", params);
 	Ok(reply::with_status(reply::json(&RequestError::new("AddHardware","Not implemented".into())), StatusCode::INTERNAL_SERVER_ERROR))
 }
-
+#[route(path=("domorust-api" / "hardwares" / usize), method="PUT", query_params=true, needed_rights=2)]
 pub async fn update_hardware(idx: usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	println!("update_hardware {} {:?}", idx, params);
 	Ok(reply::with_status(reply::json(&RequestError::new("UpdateHardware","Not implemented".into())), StatusCode::INTERNAL_SERVER_ERROR))
 }
-
+#[route(path=("domorust-api" / "hardwares" / usize), method="DELETE", query_params=true, needed_rights=2)]
 pub async fn delete_hardware(idx: usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	println!("delete_hardware {} {:?}", idx, params);
 	Ok(reply::with_status(reply::json(&RequestError::new("DeleteHardware","Not implemented".into())), StatusCode::INTERNAL_SERVER_ERROR))

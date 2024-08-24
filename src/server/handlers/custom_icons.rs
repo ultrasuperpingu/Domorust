@@ -1,6 +1,7 @@
 use std::{collections::HashMap, convert::Infallible};
 
 use bytes::BufMut;
+use domorust_macros::route;
 use futures_util::TryStreamExt;
 use warp::filters::multipart::{FormData, Part};
 use warp::reject::Rejection;
@@ -10,8 +11,8 @@ use warp::http::StatusCode;
 use crate::db;
 use crate::server::responses::{RequestError, RequestResult};
 
-
-pub async fn get_custom_icons(params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
+#[route(path=("domorust-api" / "custom_icons"), method="GET", query_params=true, needed_rights=0)]
+pub async fn get_custom_icons(params: HashMap<String, String>) -> Result<impl warp::Reply, warp::reject::Rejection> {
 	match db::custom_icons::get_custom_icons(params) {
 		Ok(res) => {
 			Ok(reply::json(&RequestResult::new("GetCustomIcons", res)).into_response())
@@ -21,7 +22,19 @@ pub async fn get_custom_icons(params: HashMap<String, String>) -> Result<impl wa
 		}
 	}
 }
-pub async fn get_custom_icon_small_image(idx:usize) -> Result<impl warp::Reply, Infallible> {
+#[route(path=("domorust-api" / "custom_icons" / usize), method="GET", query_params=false, needed_rights=0)]
+pub async fn get_custom_icon(id: usize) -> Result<impl warp::Reply, warp::reject::Rejection> {
+	match db::custom_icons::get_custom_icon(id) {
+		Ok(res) => {
+			Ok(reply::json(&RequestResult::new("GetCustomIcons", vec![res])).into_response())
+		},
+		Err(e) => {
+			Ok(reply::with_status(reply::json(&RequestError::new("GetCustomIcons",e)), StatusCode::INTERNAL_SERVER_ERROR).into_response())
+		}
+	}
+}
+#[route(path=("domorust-api" / "custom_icons" / usize / "image_small"), method="GET", query_params=false, needed_rights=0)]
+pub async fn get_custom_icon_small_image(idx:usize) -> Result<impl warp::Reply, warp::reject::Rejection> {
 	match db::custom_icons::get_custom_icons_small_image(idx) {
 		Ok(data) => {
 			Ok(reply::with_header(data, "Content-Type", "image/png").into_response())
@@ -31,7 +44,8 @@ pub async fn get_custom_icon_small_image(idx:usize) -> Result<impl warp::Reply, 
 		}
 	}
 }
-pub async fn get_custom_icon_on_image(idx:usize) -> Result<impl warp::Reply, Infallible> {
+#[route(path=("domorust-api" / "custom_icons" / usize / "image_on"), method="GET", query_params=false, needed_rights=0)]
+pub async fn get_custom_icon_on_image(idx:usize) -> Result<impl warp::Reply, warp::reject::Rejection> {
 	match db::custom_icons::get_custom_icons_on_image(idx) {
 		Ok(data) => {
 			Ok(reply::with_header(data, "Content-Type", "image/png").into_response())
@@ -41,7 +55,8 @@ pub async fn get_custom_icon_on_image(idx:usize) -> Result<impl warp::Reply, Inf
 		}
 	}
 }
-pub async fn get_custom_icon_off_image(idx:usize) -> Result<impl warp::Reply, Infallible> {
+#[route(path=("domorust-api" / "custom_icons" / usize / "image_off"), method="GET", query_params=false, needed_rights=0)]
+pub async fn get_custom_icon_off_image(idx:usize) -> Result<impl warp::Reply, warp::reject::Rejection> {
 	match db::custom_icons::get_custom_icons_off_image(idx) {
 		Ok(data) => {
 			Ok(reply::with_header(data, "Content-Type", "image/png").into_response())
@@ -51,7 +66,8 @@ pub async fn get_custom_icon_off_image(idx:usize) -> Result<impl warp::Reply, In
 		}
 	}
 }
-pub async fn add_custom_icon(form: FormData,params: HashMap<String, String>) -> Result<impl warp::Reply, Rejection> {
+#[route(path=("domorust-api" / "custom_icons"), method="POST", query_params=true, query_form=true, needed_rights=2)]
+pub async fn add_custom_icon(params: HashMap<String, String>, form: FormData) -> Result<impl warp::Reply, Rejection> {
 	let parts: Vec<Part> = form.try_collect().await.map_err(|e| {
 		eprintln!("form error: {}", e);
 		warp::reject::reject()
@@ -117,8 +133,8 @@ pub async fn add_custom_icon(form: FormData,params: HashMap<String, String>) -> 
 		}
 	}
 }
-
-pub async fn update_custom_icon(idx: usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
+#[route(path=("domorust-api" / "custom_icons" / usize), method="PUT", query_params=true, needed_rights=2)]
+pub async fn update_custom_icon(idx: usize, params: HashMap<String, String>) -> Result<impl warp::Reply, warp::reject::Rejection> {
 	match db::custom_icons::update_custom_icon(idx, params) {
 		Ok(()) => {
 			Ok(warp::reply::json(&RequestResult::<String>::new("UpdateCustomIcon", vec![])).into_response())
@@ -129,7 +145,8 @@ pub async fn update_custom_icon(idx: usize, params: HashMap<String, String>) -> 
 	}
 }
 
-pub async fn delete_custom_icon(idx: usize, _params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
+#[route(path=("domorust-api" / "custom_icons" / usize), method="DELETE", query_params=true, needed_rights=2)]
+pub async fn delete_custom_icon(idx: usize, _params: HashMap<String, String>) -> Result<impl warp::Reply, warp::reject::Rejection> {
 	match db::custom_icons::delete_custom_icon(idx) {
 		Ok(()) => {
 			Ok(warp::reply::json(&RequestResult::<String>::new("DeleteCustomIcon", vec![])).into_response())
@@ -139,7 +156,7 @@ pub async fn delete_custom_icon(idx: usize, _params: HashMap<String, String>) ->
 		}
 	}
 }
-
+#[route(path=("domorust-api" / "custom_icons" / "images"), method="GET", query_params=false, needed_rights=0)]
 pub async fn get_images() -> Result<impl warp::Reply, Infallible> {
 	Ok(reply::json(&RequestResult::new("GetImages", domorust_models::custom_images::get_images())).into_response())
 }

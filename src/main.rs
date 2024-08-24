@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 mod db;
 mod domoticz;
 mod handlers;
@@ -139,7 +141,7 @@ async fn main() {
 		.run(([0, 0, 0, 0], port))
 		.await;
 	} else if redirect_http {
-		let (_http_addr, http_warp)=warp::serve(routing::redirect_to_https(domorust))
+		let (_http_addr, http_warp)=warp::serve(routing::redirect_to_https())
 			//.run(([0, 0, 0, 0], port))
 			.bind_ephemeral(([0, 0, 0, 0], port));
 			//.await;
@@ -160,7 +162,7 @@ async fn main() {
 			//.await;
 
 		let (_https_addr, https_warp) = warp::serve(
-				routing::redirect_to_https(domorust).or(routes)
+				routing::redirect_to_https().or(routes)
 			)
 			.tls()
 			.cert_path(cert.unwrap())

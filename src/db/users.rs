@@ -6,7 +6,12 @@ use rusqlite::Connection;
 
 pub fn get_users(params: &HashMap<String, String>) -> Result<Vec<User>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let res=User::build_from_table(&connection, params)?;
+	let res=User::get_items_from_table(&connection, params)?;
+	Ok(res)
+}
+pub fn get_user(id: usize) -> Result<User, Box<dyn Error>> {
+	let connection = Connection::open("domorust.db")?;
+	let res=User::get_item_from_table(&connection, id)?;
 	Ok(res)
 }
 pub fn add_user(params:&HashMap<String,String>) -> Result<(), Box<dyn Error>> {

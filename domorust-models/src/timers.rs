@@ -3,14 +3,14 @@
 use std::{error::Error, fmt::Display};
 
 use chrono::{DateTime, Datelike, Duration, Local, NaiveTime, Utc};
-use domorust_macros::FromSqlRow;
+use domorust_macros::{FromSqlRow, FromSqlTable};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use rusqlite::{types::{FromSql, FromSqlError}, ToSql};
 use serde::Serialize;
 use serde_repr::Serialize_repr;
 
-use crate::FromSqlRow;
+use crate::{FromSqlRow, FromSqlTable};
 
 #[derive(Clone, Debug, Default, Serialize_repr, Copy)]
 #[derive(FromPrimitive)]
@@ -71,9 +71,11 @@ impl Display for ParseEnumError {
 
 
 
-#[derive(Clone, Debug, Default, Serialize, FromSqlRow)]
+#[derive(Clone, Debug, Default, Serialize, FromSqlRow, FromSqlTable)]
+#[table_name("Timers")]
 pub struct Timer {
 	#[serde(rename="idx", with="crate::utils::string")]
+	#[primary_key]
 	pub ID:usize,
 	pub Active:bool,
 	pub Cmd:u8,

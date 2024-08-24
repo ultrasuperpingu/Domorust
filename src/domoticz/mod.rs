@@ -3,6 +3,7 @@ pub(crate) mod consts;
 use self::consts::*;
 
 pub fn is_light_switch(ty: u8) -> bool {
+	#[allow(clippy::match_like_matches_macro)]
 	match ty {
 		pTypeLighting1 => true,
 		pTypeLighting2 => true,

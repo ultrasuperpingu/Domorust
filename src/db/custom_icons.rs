@@ -8,13 +8,21 @@ use rusqlite::Connection;
 
 pub fn get_custom_icons(params: HashMap<String, String>) -> Result<Vec<CustomIcon>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let mut res=CustomIcon::build_from_table(&connection, &params)?;
+	let mut res=CustomIcon::get_items_from_table(&connection, &params)?;
 	for img in &mut res {
 		img.IconFile16 = format!("domorust-api/custom_icons/{}/image_small", img.ID);
 		img.IconFile48Off = format!("domorust-api/custom_icons/{}/image_off", img.ID);
 		img.IconFile48On = format!("domorust-api/custom_icons/{}/image_on", img.ID);
 	}
 	Ok(res)
+}
+pub fn get_custom_icon(id: usize) -> Result<CustomIcon, Box<dyn Error>> {
+	let connection = Connection::open("domorust.db")?;
+	let mut img=CustomIcon::get_item_from_table(&connection, id)?;
+	img.IconFile16 = format!("domorust-api/custom_icons/{}/image_small", img.ID);
+	img.IconFile48Off = format!("domorust-api/custom_icons/{}/image_off", img.ID);
+	img.IconFile48On = format!("domorust-api/custom_icons/{}/image_on", img.ID);
+	Ok(img)
 }
 pub fn get_custom_icons_small_image(idx: usize) -> Result<Vec<u8>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;

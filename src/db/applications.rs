@@ -8,7 +8,7 @@ pub fn get_applications(_params: HashMap<String, String>) -> Result<Vec<Applicat
 	let query = "SELECT * FROM Applications";
 	let mut stmt = connection.prepare(query)?;
 	let apps_iter = stmt.query_map((), |row| {
-		Application::build_from_row(row)
+		Application::get_from_row(row)
 	})?;
 	let mut res=vec![];
 	for h in apps_iter {

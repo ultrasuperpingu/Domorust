@@ -17,7 +17,7 @@ impl Default for WSResp {
 		Self { data: Default::default(), event: "response".to_string(), request: "request".to_string(), requestid: -1 }
 	}
 }
-pub(crate) fn websocket() -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+pub(crate) fn websocket() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
 
 	warp::path("json")
 		// The `ws()` filter will prepare the Websocket handshake.

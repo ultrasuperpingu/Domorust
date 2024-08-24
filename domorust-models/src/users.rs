@@ -18,20 +18,23 @@ pub struct User {
 	#[param_name("enabled")]
 	pub Active:bool,
 	#[param_name("username")]
-	#[serde(with="crate::utils::base64_decoded")]
+	//#[serde(with="crate::utils::base64_decoded")]
 	pub Username:String,
 	#[param_name("password")]
+	#[serde(skip)]
 	pub Password:String,
 	#[param_name("rights")]
 	pub Rights: u16,
 	pub TabsEnabled: u8,
 	pub RemoteSharing: bool,
 	#[serde(skip)]
-	#[skip_field]
-	#[allow(unused)]
-	pub MFAsecret:String,
+	pub MFAsecret:Option<String>,
+	#[serde(skip)]
+	#[skip_field_sql_write]
+	pub Salt:String,
 }
-#[derive(Debug, Serialize, Default, FromSqlRow, ToSqlQuery)]
+#[derive(Debug, Default, FromSqlRow, ToSqlQuery)]
+#[table_name("UserSessions")]
 pub struct UserSession {
 	#[primary_key]
 	pub SessionID:String,

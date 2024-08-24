@@ -11,7 +11,7 @@ pub fn expand_derive_fromsql_row(input: &syn::DeriveInput) -> syn::Result<TokenS
 	let mut query_map_body=TokenStream::new();
 	let mut first = true;
 	for f in &stru.fields {
-		if f.skip {
+		if f.skip_field {
 			continue;
 		}
 		if !first {
@@ -29,7 +29,7 @@ pub fn expand_derive_fromsql_row(input: &syn::DeriveInput) -> syn::Result<TokenS
 	}
 	let expanded = quote! {
 		impl FromSqlRow for #struct_name {
-			fn build_from_row<'a>(row: &rusqlite::Row<'a>) -> Result<Self, rusqlite::Error> {
+			fn get_from_row<'a>(row: &rusqlite::Row<'a>) -> Result<Self, rusqlite::Error> {
 				let res=#struct_name {
 					#query_map_body,
 					..Default::default()
@@ -53,11 +53,15 @@ pub fn expand_derive_fromsql_table(input: &syn::DeriveInput) -> syn::Result<Toke
 	let table = stru.table_name;
 	let mut columns_list=String::new();
 	let mut first=true;
+	let mut primary_col = &String::from("");
 	let mut where_clause = quote! {};
 	where_clause.append_all(quote!{let mut first = true;});
 	for f in &stru.fields {
-		if f.skip {
+		if f.skip_field {
 			continue;
+		}
+		if f.primary_key {
+			primary_col = &f.column_name;
 		}
 		if !first {
 			columns_list+=", ";
@@ -100,8 +104,8 @@ pub fn expand_derive_fromsql_table(input: &syn::DeriveInput) -> syn::Result<Toke
 	}
 	let expanded = quote! {
 		impl FromSqlTable for #struct_name {
-			fn build_from_table(connection:&rusqlite::Connection,
-				filters:&std::collections::HashMap<String,String>)
+			fn get_items_from_table(connection:&rusqlite::Connection,
+					filters:&std::collections::HashMap<String,String>)
 					-> Result<Vec<Self>, rusqlite::Error> {
 				let mut res=vec![];
 				let mut where_clause = "".to_string();
@@ -110,13 +114,24 @@ pub fn expand_derive_fromsql_table(input: &syn::DeriveInput) -> syn::Result<Toke
 				//println!("{}", query);
 				let mut stmt = connection.prepare(query.as_str())?;
 				let iter = stmt.query_map([], |row| {
-					let item=#struct_name::build_from_row(row)?;
+					let item=#struct_name::get_from_row(row)?;
 					Ok(item)
 				})?;
 				for item in iter {
 					res.push(item?);
 				}
 				Ok(res)
+			}
+			fn get_item_from_table(connection:&rusqlite::Connection, id: usize)
+					-> Result<Self, rusqlite::Error> {
+				let query = concat!("SELECT * FROM ", #table, " WHERE ", #primary_col, "=?1");
+				//println!("{}", query);
+				let mut stmt = connection.prepare(query)?;
+				let iter = stmt.query_row([id], |row| {
+					let item=#struct_name::get_from_row(row)?;
+					return Ok(item)
+				})?;
+				Ok(iter)
 			}
 		}
 	};

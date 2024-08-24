@@ -4,12 +4,16 @@ use domorust_models::user_variables::UserVariable;
 use domorust_models::{FromHashMap, FromSqlTable, ToSqlQuery};
 use rusqlite::Connection;
 
-pub fn get_user_variables(_params: HashMap<String, String>) -> Result<Vec<UserVariable>, Box<dyn Error>> {
+pub fn get_user_variables(params: HashMap<String, String>) -> Result<Vec<UserVariable>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let res=UserVariable::build_from_table(&connection, &HashMap::new())?;
+	let res=UserVariable::get_items_from_table(&connection, &params)?;
 	Ok(res)
 }
-
+pub fn get_user_variable(id: usize) -> Result<UserVariable, Box<dyn Error>> {
+	let connection = Connection::open("domorust.db")?;
+	let res=UserVariable::get_item_from_table(&connection, id)?;
+	Ok(res)
+}
 pub fn add_user_variable(params:HashMap<String,String>) -> Result<(), Box<dyn Error>> {
 
 	let connection = Connection::open("domorust.db")?;

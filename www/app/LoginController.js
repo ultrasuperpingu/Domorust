@@ -4,20 +4,16 @@ define(['app'], function (app) {
 		$scope.failcounter = 0;
 
 		$scope.DoLogin = function () {
-			var musername = encodeURIComponent(btoa($('#username').val()));
-			var mpassword = encodeURIComponent(md5.createHash($('#password').val()));
+			var musername = encodeURIComponent($('#username').val());
+			var mpassword = encodeURIComponent(sha256($('#password').val()));
 			var bRememberMe = $('#rememberme').is(":checked");
 
 			//var fd = new FormData();
 			//fd.append('username', musername);
 			//fd.append('password', mpassword);
 			//fd.append('rememberme', bRememberMe);
-			const params = new URLSearchParams();
-			params.set('username', musername);
-			params.set('password', mpassword);
-			params.set('rememberme', bRememberMe);
 			var params2="?username="+musername+"&password="+mpassword+"&rememberme="+bRememberMe;
-			$http.post('domorust-api/login'+params2, params, {
+			$http.post('domorust-api/login'+params2, [], {
 				transformRequest: angular.identity,
 				headers: { 'Content-Type': undefined }
 			}).then(function successCallback(response) {
@@ -28,7 +24,51 @@ define(['app'], function (app) {
 					$("#totp").focus();
 					return;
 				}
-				if (data.status != "OK") {
+				if (data.status == "No Users") {
+					$.ajax({
+						method:"POST",
+						url: "domorust-api/users?enabled=true" +
+						"&username=" + musername +
+						"&password=" + mpassword +
+						"&rights=2" +
+						"&RemoteSharing=false" +
+						"&TabsEnabled=31",
+						async: false,
+						dataType: 'json',
+						success: function (data) {
+							if (data.status == "OK") {
+								ShowNotify("User Added", 2500, false);
+								return;
+							}
+						},
+						error: function () {
+							ShowNotify($.t('Problem adding User!'), 2500, true);
+						}
+					});
+				}
+				else if (data.status == "No Active Users") {
+					$.ajax({
+						method:"PUT",
+						url: "domorust-api/users?enabled=true" +
+						"&username=" + musername +
+						"&password=" + mpassword +
+						"&rights=2" +
+						"&RemoteSharing=false" +
+						"&TabsEnabled=31",
+						async: false,
+						dataType: 'json',
+						success: function (data) {
+							if (data.status == "OK") {
+								ShowNotify("User Added", 2500, false);
+								return;
+							}
+						},
+						error: function () {
+							ShowNotify($.t('Problem adding User!'), 2500, true);
+						}
+					});
+				}
+				else if (data.status != "OK") {
 					HideNotify();
 					$scope.failcounter += 1;
 					if ($scope.failcounter > 3) {
@@ -71,7 +111,7 @@ define(['app'], function (app) {
 		}
 
 		$scope.DoMfaLogin = function () {
-			var musername = encodeURIComponent(btoa($('#username').val()));
+			var musername = encodeURIComponent($('#username').val());
 			var mpassword = encodeURIComponent(md5.createHash($('#password').val()));
 			var bRememberMe = $('#rememberme').is(":checked");
 

@@ -39,9 +39,9 @@ define(['app'], function (app) {
 				ShowNotify($.t('Please enter a Password!'), 2500, true);
 				return;
 			}
-			if (csettings.password.length != 32) {
-				csettings.password = md5.createHash(csettings.password);
-			}
+			//if (csettings.password.length != 32) {
+			//	csettings.password = md5.createHash(csettings.password);
+			//}
 			csettings.rights = $("#usercontent #userparamstable #comborights").val();
 			csettings.bEnableSharing = $('#usercontent #userparamstable #enablesharing').is(":checked");
 
@@ -75,13 +75,14 @@ define(['app'], function (app) {
 			if (typeof csettings == 'undefined') {
 				return;
 			}
-
+			var mpassword = encodeURIComponent(sha256(csettings.password));
+			
 			$.ajax({
 				method:"PUT",
 				url: "domorust-api/users/" + idx +
 				"?enabled=" + csettings.bEnabled +
 				"&username=" + csettings.username +
-				"&password=" + csettings.password +
+				"&password=" + mpassword +
 				"&rights=" + csettings.rights +
 				"&RemoteSharing=" + csettings.bEnableSharing +
 				"&TabsEnabled=" + csettings.TabsEnabled,
@@ -169,12 +170,14 @@ define(['app'], function (app) {
 			if (typeof csettings == 'undefined') {
 				return;
 			}
+			var mpassword = encodeURIComponent(sha256(csettings.password));
+			
 
 			$.ajax({
 				method:"POST",
 				url: "domorust-api/users?enabled=" + csettings.bEnabled +
 				"&username=" + csettings.username +
-				"&password=" + csettings.password +
+				"&password=" + mpassword +
 				"&rights=" + csettings.rights +
 				"&RemoteSharing=" + csettings.bEnableSharing +
 				"&TabsEnabled=" + csettings.TabsEnabled,

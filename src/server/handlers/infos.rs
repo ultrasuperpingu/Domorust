@@ -1,5 +1,6 @@
 use std::convert::Infallible;
 
+use domorust_macros::route;
 use domorust_models::hardware::get_hardware_types_data;
 use domorust_models::settings::ConfigResponseSettings;
 use domorust_models::UptimeData;
@@ -10,7 +11,7 @@ use crate::server::responses::{get_serial_ports, RequestSingleResult};
 use crate::server::responses::{ RequestError, RequestResult };
 
 
-
+#[route(path=("domorust-api" / "infos" / "version"), method="GET", query_params=false, needed_rights=-1)]
 pub async fn get_version()  -> Result<impl Reply, Infallible> {
 	Ok(reply::json(
 		&RequestResult::<String>::new(
@@ -19,6 +20,7 @@ pub async fn get_version()  -> Result<impl Reply, Infallible> {
 		))
 	)
 }
+#[route(path=("domorust-api" / "infos" / "uptime"), method="GET", query_params=false, needed_rights=-1)]
 pub async fn get_uptime()  -> Result<impl Reply, Infallible> {
 	Ok(reply::json(
 		&RequestResult::<UptimeData>::new(
@@ -27,6 +29,7 @@ pub async fn get_uptime()  -> Result<impl Reply, Infallible> {
 		))
 	)
 }
+#[route(path=("domorust-api" / "infos" / "sun_rise_set"), method="GET", query_params=false, needed_rights=-1)]
 pub async fn get_sun_rise_set()  -> Result<Response, Infallible> {
 	let sunrise_set = crate::server::responses::get_sun_rise_set();
 	match sunrise_set {
@@ -39,7 +42,7 @@ pub async fn get_sun_rise_set()  -> Result<Response, Infallible> {
 		}
 	}
 }
-
+#[route(path=("domorust-api" / "infos" / "serial_devices"), method="GET", query_params=false, needed_rights=0)]
 pub async fn get_serial_devices()  -> Result<Response, Infallible> {
 	let htds=get_serial_ports();
 	match htds {
@@ -53,7 +56,7 @@ pub async fn get_serial_devices()  -> Result<Response, Infallible> {
 		}
 	}
 }
-
+#[route(path=("domorust-api" / "infos" / "hardwaretypes"), method="GET", query_params=false, needed_rights=0)]
 pub async fn get_hardwaretypes()  -> Result<Response, Infallible> {
 	let htds=get_hardware_types_data();
 	match htds {
@@ -67,23 +70,24 @@ pub async fn get_hardwaretypes()  -> Result<Response, Infallible> {
 		}
 	}
 }
-
+#[route(path=("domorust-api" / "infos" / "switchtypes"), method="GET", query_params=false, needed_rights=-1)]
 pub async fn get_switchtypes()  -> Result<impl Reply, Infallible> {
 	let res = crate::server::responses::get_switch_types();
 	Ok(reply::json(&res))
 }
-
+#[route(path=("domorust-api" / "infos" / "metertypes"), method="GET", query_params=false, needed_rights=-1)]
 pub async fn get_metertypes()  -> Result<impl Reply, Infallible> {
 	let res = crate::server::responses::get_meter_types();
 	Ok(reply::json(&res))
 }
-
+#[route(path=("domorust-api" / "infos" / "languages"), method="GET", query_params=false, needed_rights=-1)]
 pub async fn get_languages()  -> Result<impl Reply, Infallible> {
 	let res = crate::server::responses::get_languages();
 	Ok(reply::json(&res))
 }
-
+#[route(path=("domorust-api" / "infos" / "config"), method="GET", query_params=false, needed_rights=0)]
 pub async fn get_config()  -> Result<impl Reply, Infallible> {
+	println!("get_config");
 	match crate::db::get_config() {
 		Ok(mut res) => {
 			complete_config_resp(&mut res);

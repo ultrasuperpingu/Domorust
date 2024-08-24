@@ -10,7 +10,7 @@ pub fn expand_derive_from_hashmap(input: &syn::DeriveInput) -> syn::Result<Token
 	let fields_iter = stru.fields.iter().map(|f| {
 		let field_ident=f.ident.unwrap();
 		let param_name=&f.param_name;
-		if !param_name.is_empty() && !f.skip {
+		if !param_name.is_empty() && !f.skip_field {
 			if f.option {
 				quote!{
 					if params.contains_key(#param_name) {
@@ -35,8 +35,13 @@ pub fn expand_derive_from_hashmap(input: &syn::DeriveInput) -> syn::Result<Token
 		impl FromHashMap for #struct_name {
 			fn from_hashmap(params: &std::collections::HashMap<String,String>) -> Result<Self, Box<dyn std::error::Error>> {
 				let mut res = Self::default();
-				#(#fields_iter)*
+				FromHashMap::update_from_hashmap(&mut res, params)?;
 				Ok(res)
+			}
+			fn update_from_hashmap(&mut self, params: &std::collections::HashMap<String,String>) -> Result<(), Box<dyn std::error::Error>> {
+				let res = self;
+				#(#fields_iter)*
+				Ok(())
 			}
 		}
 	};

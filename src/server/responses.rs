@@ -5,10 +5,10 @@ use std::collections::HashMap;
 use std::fs;
 use std::error::Error;
 use chrono::Local;
-use domorust_models::{domorust::DomorustConfig, timers::sun_rise_set};
+use domorust_models::timers::sun_rise_set;
 use serde::Serialize;
 
-use crate::{db, domoticz::consts::{METER_TYPES, SWITCH_TYPES}};
+use crate::{db, domoticz::consts::{METER_TYPES, SWITCH_TYPES}, DOMORUST};
 #[derive(Serialize, Debug, Clone)]
 pub struct AuthResponse {
 	rights : u16,
@@ -20,8 +20,17 @@ pub struct AuthResponse {
 impl AuthResponse {
 	pub fn unauthorized() -> Self {
 		Self {
-			rights: 255,
+			rights: 0,
 			status: "KO",
+			title: "GetAuth",
+			user: String::from(""),
+			version: "2024.1"
+		}
+	}
+	pub fn no_users() -> Self {
+		Self {
+			rights: 0,
+			status: "No Users",
 			title: "GetAuth",
 			user: String::from(""),
 			version: "2024.1"
@@ -292,8 +301,8 @@ pub struct GetVecObjResponse<T> {
 pub struct ThemeName {
 	pub theme:String
 }
-pub fn get_themes(args: DomorustConfig) -> GetVecObjResponse<ThemeName> {
-	let wwwroot = args.wwwroot;
+pub fn get_themes() -> GetVecObjResponse<ThemeName> {
+	let wwwroot = DOMORUST.get().unwrap().cli.wwwroot.clone();
 	let paths = fs::read_dir(wwwroot.into_os_string().into_string().unwrap() + "/styles/").unwrap();
 	let mut res=GetVecObjResponse::<ThemeName> {
 		title: "GetThemes".to_string(),

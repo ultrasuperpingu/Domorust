@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 
+use domorust_macros::route;
 use domorust_models::hardware::IHardware;
 use domorust_models::plugins::py_domoticz::{get_pydevices, PyHardware};
 use warp::reply::{self, Reply, Response};
@@ -9,7 +10,7 @@ use warp::http::StatusCode;
 use crate::db;
 use crate::server::responses::{RequestError, RequestResult};
 
-
+#[route(path=("domorust-api" / "devices"), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_devices(params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::devices::get_devices(params) {
 		Ok(devices) => {
@@ -26,6 +27,7 @@ pub async fn get_devices(params: HashMap<String, String>) -> Result<impl warp::R
 		}
 	}
 }
+#[route(path=("domorust-api" / "devices" / usize), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_device(idx:usize, params: HashMap<String, String>) -> Result<Response, Infallible> {
 	let mut params = params.clone();
 	params.insert("idx".into(), idx.to_string());
@@ -38,6 +40,7 @@ pub async fn get_device(idx:usize, params: HashMap<String, String>) -> Result<Re
 		}
 	}
 }
+#[route(path=("domorust-api" / "devices" / "light_switches"), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_light_switches(params: HashMap<String, String>) -> Result<Response, Infallible> {
 	match db::devices::get_light_switches(params) {
 		Ok(devices) => {
@@ -48,21 +51,22 @@ pub async fn get_light_switches(params: HashMap<String, String>) -> Result<Respo
 		}
 	}
 }
+#[route(path=("domorust-api" / "devices"), method="POST", query_params=true, needed_rights=2)]
 pub async fn add_device(params: HashMap<String, String>) -> Result<Response, Infallible> {
 	println!("add_device {:?}", params);
 	Ok(reply::with_status(reply::json(&RequestError::new("AddDevice","Not implemented".into())), StatusCode::NOT_IMPLEMENTED).into_response())
 }
-
+#[route(path=("domorust-api" / "devices" / usize), method="PUT", query_params=true, needed_rights=2)]
 pub async fn update_device(idx: usize, params: HashMap<String, String>) -> Result<Response, Infallible> {
 	println!("update_device {} {:?}", idx, params);
 	Ok(reply::with_status(reply::json(&RequestError::new("UpdateDevice","Not implemented".into())), StatusCode::NOT_IMPLEMENTED).into_response())
 }
-
+#[route(path=("domorust-api" / "devices" / usize), method="DELETE", query_params=true, needed_rights=2)]
 pub async fn delete_device(idx: usize,params: HashMap<String, String>) -> Result<Response, Infallible> {
 	println!("delete_device {} {:?}", idx, params);
 	Ok(reply::with_status(reply::json(&RequestError::new("DeleteDevice","Not implemented".into())), StatusCode::NOT_IMPLEMENTED).into_response())
 }
-
+#[route(path=("domorust-api" / "devices" / usize / "graph"), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_device_graph(idx: usize,params: HashMap<String, String>) -> Result<Response, Infallible> {
 	//idx=1&param=graph&range=year&sensor=temp&type=command
 	//idx=1&param=graph&range=day&sensor=temp&type=command
@@ -80,6 +84,7 @@ pub async fn get_device_graph(idx: usize,params: HashMap<String, String>) -> Res
 		},
 	}
 }
+#[route(path=("domorust-api" / "devices" / "allow_new"), method="POST", query_params=true, needed_rights=2)]
 pub async fn allow_new_devices(params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	println!("allow_new_devices {:?}", params);
 	let five="5".to_string();
@@ -91,6 +96,7 @@ pub async fn allow_new_devices(params: HashMap<String, String>) -> Result<impl w
 	}
 	Ok(reply::with_status(reply::json(&RequestError::new("AllowNewDevice","Not implemented".into())), StatusCode::NOT_IMPLEMENTED))
 }
+#[route(path=("domorust-api" / "devices" / usize /"make_favorite"), method="PUT", query_params=true, needed_rights=2)]
 pub async fn make_favorite_device(id: usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	let favorite = if let Some(favorite) = params.get("favorite") {
 		favorite == "true" || favorite == "1"
@@ -108,6 +114,7 @@ pub async fn make_favorite_device(id: usize, params: HashMap<String, String>) ->
 	//Ok(reply::with_status(reply::json(&RequestError::new("MakeFavoriteDevice".to_string(),"Not implemented".into())), StatusCode::INTERNAL_SERVER_ERROR))
 }
 // TODO: it's WIP. Just a POC/Trash code. Everything need to be implemented properly
+#[route(path=("domorust-api" / "devices" / usize / "commands" / String), method="POST", query_params=true, needed_rights=2)]
 pub async fn send_device_command(id: usize, command: String, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	println!("send_device_command device ID {}: {}({:?})", id, command, params);
 	let device = crate::db::devices::get_device(id, params).unwrap();

@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 use std::{collections::HashMap, error::Error, fmt::Display};
 
 use rusqlite::Connection;
@@ -47,10 +48,11 @@ pub trait ToSqlRowFields : Sized {
 	fn write_instance(&self, connection:&Connection) -> Result<(), Box<dyn std::error::Error>>;
 }
 pub trait FromSqlRow : Sized {
-	fn build_from_row(row: &rusqlite::Row) -> Result<Self, rusqlite::Error>;
+	fn get_from_row(row: &rusqlite::Row) -> Result<Self, rusqlite::Error>;
 }
 pub trait FromSqlTable : FromSqlRow {
-	fn build_from_table(connection:&rusqlite::Connection, filters:&HashMap<String,String>) -> Result<Vec<Self>, rusqlite::Error>;
+	fn get_items_from_table(connection:&rusqlite::Connection, filters:&HashMap<String,String>) -> Result<Vec<Self>, rusqlite::Error>;
+	fn get_item_from_table(connection:&rusqlite::Connection,id: usize) -> Result<Self, rusqlite::Error>;
 }
 pub trait ToSqlQuery {
 	fn add_query(&self, connection:&rusqlite::Connection) -> Result<(), rusqlite::Error>;
@@ -58,6 +60,8 @@ pub trait ToSqlQuery {
 }
 pub trait FromHashMap : Sized {
 	fn from_hashmap(params: &HashMap<String,String>) -> Result<Self, Box<dyn Error>>;
+	fn update_from_hashmap(&mut self, params: &std::collections::HashMap<String,String>) -> Result<(), Box<dyn std::error::Error>>;
+
 }
 
 

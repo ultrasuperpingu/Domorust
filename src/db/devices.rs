@@ -12,7 +12,7 @@ use crate::domoticz::{get_humidity_status, is_light_or_switch, is_light_switch, 
 
 pub fn get_devices(params: HashMap<String,String>) -> Result<Vec<DeviceData>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let res=DeviceData::build_from_table(&connection, &params);
+	let res=DeviceData::get_items_from_table(&connection, &params);
 	if let Ok(mut devices) = res {
 		for d in &mut devices {
 			d.SwitchTypeName = SWITCH_TYPES[d.SwitchType].to_string();

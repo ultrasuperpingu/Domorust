@@ -4,7 +4,7 @@ use num_traits::FromPrimitive;
 use rusqlite::Connection;
 
 use domorust_models::timers::{Timer, TimerPlan, TimerType};
-use domorust_models::FromSqlRow;
+use domorust_models::{FromSqlRow, FromSqlTable};
 
 
 pub fn get_device_timers(dev_idx:usize) -> Result<Vec<Timer>, Box<dyn Error>> {
@@ -69,30 +69,10 @@ pub fn get_timers(_params: HashMap<String, String>) -> Result<Vec<Timer>, Box<dy
 	Ok(res)
 }
 
-pub fn get_timer(idx:usize) -> Result<Timer, Box<dyn Error>> {
+pub fn get_timer(id: usize) -> Result<Timer, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db").unwrap();
-	let query = "SELECT * FROM Timers WHERE ID=?1";
-	let res: Result<Timer, _> = connection.query_row_and_then(query,[idx], |row| {
-		let timer=Timer {
-			ID:row.get::<usize,usize>(0)?,
-			Active:row.get(1)?,
-			Cmd:row.get(6)?,
-			Color:row.get(8)?,
-			Date: row.get(3)?,
-			Days:row.get(11)?,
-			DeviceRowID:row.get(2)?,
-			Level:row.get(7)?,
-			MDay:row.get(13)?,
-			Month:row.get(12)?,
-			Occurence:row.get(14)?,
-			Persistant:false,
-			Randomness:row.get(9)?,
-			Time: row.get(4)?,
-			Type: FromPrimitive::from_u8(row.get::<usize, u8>(5)?).unwrap_or(TimerType::OnTime),
-		};
-		Ok(timer)
-	});
-	res
+	let res = Timer::get_item_from_table(&connection, id)?;
+	Ok(res)
 }
 pub fn add_timer(dev_id:usize, timer:&Timer) -> Result<(), Box<dyn Error>> {
 	let connection = Connection::open("domorust.db").unwrap();
@@ -126,7 +106,7 @@ pub fn get_timerplans() -> Result<Vec<TimerPlan>, Box<dyn Error>> {
 	let mut stmt = connection.prepare(query)?;
 	
 	let timerplans_iter = stmt.query_map([], |row| {
-		TimerPlan::build_from_row(row)
+		TimerPlan::get_from_row(row)
 	})?;
 	
 	for h in timerplans_iter.flatten() {

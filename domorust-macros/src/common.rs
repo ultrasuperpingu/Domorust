@@ -1,5 +1,6 @@
-use proc_macro2::Ident;
-use syn::{spanned::Spanned, Type, Data, Fields, LitInt, LitStr};
+use proc_macro2::{Ident, TokenTree};
+use syn::{meta::ParseNestedMeta, spanned::Spanned, Data, Fields, LitBool, LitInt, LitStr, Type};
+use syn::parse::Result;
 
 #[derive(Debug)]
 pub(crate) struct Structure<'a> {
@@ -39,7 +40,9 @@ pub(crate) struct MyField<'a> {
 	pub name_value : String,
 	pub param_name:String,
 	pub primary_key:bool,
-	pub skip:bool,
+	pub field_index:usize,
+	pub skip_field:bool,
+	pub skip_field_sql_write:bool,
 	pub need_quote:bool,
 	pub option:bool,
 }
@@ -56,7 +59,9 @@ impl<'a> Default for MyField<'a> {
 			name_value: Default::default(),
 			param_name: Default::default(),
 			primary_key: false,
-			skip: false,
+			field_index: usize::MAX,
+			skip_field: false,
+			skip_field_sql_write: false,
 			need_quote: false,
 			option: false,
 		}
@@ -118,9 +123,10 @@ pub(crate) fn read_struct(input: &syn::DeriveInput) -> syn::Result<Structure> {
 		},
 		_ => return Err(syn::Error::new(input.span(),"Only structs are supported")),
 	};
-	let fields_iter = fields.iter().map(|field| {
+	let fields_iter = fields.iter().enumerate().map(|(index, field)| {
 		let mut myfield = MyField::default();
 		myfield.ident = field.ident.as_ref();
+		myfield.field_index = index;
 		myfield.name = (&myfield.ident).unwrap().to_string();
 		myfield.ty = Some(&field.ty);
 		myfield.need_quote = is_need_quote(&field.ty);
@@ -130,7 +136,11 @@ pub(crate) fn read_struct(input: &syn::DeriveInput) -> syn::Result<Structure> {
 			//println!("\tattr {}",a.meta.path().get_ident().unwrap().to_string());
 			//TODO: how export error in closure without panic?
 			if a.meta.path().is_ident("skip_field") {
-				myfield.skip=true;
+				myfield.skip_field=true;
+				continue;
+			}
+			if a.meta.path().is_ident("skip_field_sql_write") {
+				myfield.skip_field_sql_write=true;
 				continue;
 			}
 			if a.meta.path().is_ident("value_column_name") {
@@ -227,4 +237,67 @@ fn is_option(ty: &syn::Type) -> bool {
 		});
 	//println!("is_need_quote extracted type name: {}",idents_of_path);
 	idents_of_path.starts_with("Option")
+}
+
+#[derive(Debug, Default)]
+pub struct RouteParams {
+	pub path:Option<TokenTree>,
+	pub query_params:bool,
+	pub query_form:bool,
+	pub method: String,
+	pub needed_rights: i8
+}
+impl RouteParams {
+	pub fn parse(&mut self, meta: ParseNestedMeta) -> Result<()> {
+		if meta.path.is_ident("query_params") {
+			self.query_params = {
+				// no way to be more concise ?
+				if let Ok(value) = meta.value() {
+					if let Ok(bool_lit_val) = value.parse::<LitBool>() {
+						bool_lit_val.value
+					} else {
+						true
+					}
+				} else {
+					true
+				}
+			};
+			Ok(())
+		} else if meta.path.is_ident("query_form") {
+			self.query_form = {
+				// no way to be more concise ?
+				if let Ok(value) = meta.value() {
+					if let Ok(bool_lit_val) = value.parse::<LitBool>() {
+						bool_lit_val.value
+					} else {
+						true
+					}
+				} else {
+					true
+				}
+			};
+			Ok(())
+		} else if meta.path.is_ident("method") {
+			self.method = {
+				let value = meta.value()?;
+				let str_lit_val = value.parse::<LitStr>()?;
+				str_lit_val.value()
+			};
+			Ok(())
+		} else if meta.path.is_ident("needed_rights") {
+			self.needed_rights = {
+				let value = meta.value()?;
+				let int_lit_val = value.parse::<LitInt>()?;
+				int_lit_val.base10_parse()?
+			};
+			Ok(())
+		} else if meta.path.is_ident("path") {
+			let value = meta.value()?;
+			let tuple_lit_val = value.parse::<TokenTree>()?;
+			self.path = Some(tuple_lit_val);
+			Ok(())
+		} else {
+			Err(meta.error("unsupported route property"))
+		}
+	}
 }

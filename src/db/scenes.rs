@@ -6,7 +6,7 @@ use rusqlite::Connection;
 
 pub fn get_scenes(params: HashMap<String, String>) -> Result<Vec<Scene>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let res=Scene::build_from_table(&connection, &params)?;
+	let res=Scene::get_items_from_table(&connection, &params)?;
 	Ok(res)
 }
 
@@ -43,7 +43,7 @@ pub fn get_scenes_devices(idx:usize, params:HashMap<String,String>) -> Result<Ve
 	let connection = Connection::open("domorust.db")?;
 	let mut params = params.clone();
 	params.insert("idx".to_string(), idx.to_string());
-	let res=SceneDevice::build_from_table(&connection, &params)?;
+	let res=SceneDevice::get_items_from_table(&connection, &params)?;
 	Ok(res)
 }
 

@@ -25,12 +25,14 @@ serde_json = "1.0"
 #roxmltree = "0.20.0"
 #dlopen = "0.1"
 clap = { version = "4.0", features = ["derive", "string"] }
-serialport = "4.4.0"
+serialport = {version = "4.5.0", default-features = false}
 futures-util = "0.3.30"
 #futures = "0.3.30"
 bytes="1.7.0"
 # to convert enums from/to their repr
 #num-derive = "0.4.2"
 num-traits = "0.2.19"
-#domorust-macros = { version = "0.1", path = "domorust-macros" }
+sha2 = "0.10"
+hex-literal = "0.4"
+domorust-macros = { version = "0.1", path = "domorust-macros" }
 domorust-models = { version = "0.1", path = "domorust-models" }

@@ -1,5 +1,6 @@
 use std::{collections::HashMap, convert::Infallible};
 
+use domorust_macros::route;
 use domorust_models::timers::{Timer, TimerPlan, TimerType};
 use num_traits::FromPrimitive;
 use warp::http;
@@ -8,7 +9,7 @@ use warp::reply::{self, Reply};
 use crate::db;
 use crate::server::responses::{RequestError, RequestResult};
 
-
+#[route(path=("domorust-api" / "timers"), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_timers(params: HashMap<String, String>) -> Result<reply::Response, Infallible> {
 	let res=db::timers::get_timers(params);
 	match res {
@@ -22,6 +23,7 @@ pub async fn get_timers(params: HashMap<String, String>) -> Result<reply::Respon
 		}
 	}
 }
+#[route(path=("domorust-api" / "devices" / usize / "timers"), method="GET", query_params=false, needed_rights=0)]
 pub async fn get_device_timers(dev_idx:usize) -> Result<impl Reply, Infallible> {
 	let res=db::timers::get_device_timers(dev_idx);
 	match res {
@@ -35,6 +37,7 @@ pub async fn get_device_timers(dev_idx:usize) -> Result<impl Reply, Infallible> 
 		}
 	}
 }
+#[route(path=("domorust-api" / "timers" / usize), method="GET", query_params=false, needed_rights=0)]
 pub async fn get_timer(idx:usize) -> Result<impl Reply, Infallible> {
 	match db::timers::get_timer(idx) {
 		Ok(t) => {
@@ -45,7 +48,8 @@ pub async fn get_timer(idx:usize) -> Result<impl Reply, Infallible> {
 		}
 	}
 }
-pub async fn add_timer(dev_id:usize, params: HashMap<String, String>) -> Result<impl Reply, Infallible> {
+#[route(path=("domorust-api" / "devices" / usize / "timers"), method="POST", query_params=true, needed_rights=2)]
+pub async fn add_device_timer(dev_id:usize, params: HashMap<String, String>) -> Result<impl Reply, Infallible> {
 	let empty=String::new();
 	let zero_str="0".to_string();
 	let two_str="2".to_string();
@@ -93,7 +97,7 @@ pub async fn add_timer(dev_id:usize, params: HashMap<String, String>) -> Result<
 		Err(e) => Ok(reply::with_status(reply::json(&RequestError::new("UpdateTimer", e)),http::StatusCode::INTERNAL_SERVER_ERROR))
 	}
 }
-
+#[route(path=("domorust-api" / "timers" / usize), method="PUT", query_params=true, needed_rights=2)]
 pub async fn update_timer(idx: usize,params: HashMap<String, String>) -> Result<impl Reply, Infallible> {
 	let empty=String::new();
 	let zero_str="0".to_string();
@@ -147,7 +151,7 @@ pub async fn update_timer(idx: usize,params: HashMap<String, String>) -> Result<
 	}
 	
 }
-
+#[route(path=("domorust-api" / "timers" / usize), method="DELETE", query_params=false, needed_rights=2)]
 pub async fn delete_timer(idx: usize) -> Result<impl Reply, Infallible> {
 	match db::timers::delete_timer(idx) {
 		Ok(()) => {
@@ -158,7 +162,7 @@ pub async fn delete_timer(idx: usize) -> Result<impl Reply, Infallible> {
 		}
 	}
 }
-
+#[route(path=("domorust-api" / "devices" / usize / "timers"), method="PUT", query_params=false, needed_rights=2)]
 pub async fn delete_device_timers(dev_id: usize) -> Result<impl Reply, Infallible> {
 	match db::timers::delete_device_timers(dev_id) {
 		Ok(()) => {
@@ -169,7 +173,7 @@ pub async fn delete_device_timers(dev_id: usize) -> Result<impl Reply, Infallibl
 		}
 	}
 }
-
+#[route(path=("domorust-api" / "timerplans"), method="GET", query_params=false, needed_rights=0)]
 pub async fn get_timerplans() -> Result<impl Reply, Infallible> {
 	match db::timers::get_timerplans() {
 		Ok(res) => {
@@ -180,6 +184,7 @@ pub async fn get_timerplans() -> Result<impl Reply, Infallible> {
 		}
 	}
 }
+#[route(path=("domorust-api" / "timerplans"), method="POST", query_params=true, needed_rights=2)]
 pub async fn add_timerplan(params: HashMap<String, String>) -> Result<impl Reply, Infallible> {
 	match db::timers::add_timerplan(params.get("name").unwrap()) {
 		Ok(()) => {
@@ -190,6 +195,7 @@ pub async fn add_timerplan(params: HashMap<String, String>) -> Result<impl Reply
 		}
 	}
 }
+#[route(path=("domorust-api" / "timerplans" / usize), method="PUT", query_params=true, needed_rights=2)]
 pub async fn update_timerplan(id: usize,params: HashMap<String, String>) -> Result<impl Reply, Infallible> {
 	match db::timers::update_timerplan(id, params.get("name").unwrap()) {
 		Ok(()) => {
@@ -200,6 +206,7 @@ pub async fn update_timerplan(id: usize,params: HashMap<String, String>) -> Resu
 		}
 	}
 }
+#[route(path=("domorust-api" / "timerplans" / usize), method="DELETE", query_params=false, needed_rights=2)]
 pub async fn delete_timerplan(id: usize) -> Result<impl Reply, Infallible> {
 	match db::timers::delete_timerplan(id) {
 		Ok(()) => {
@@ -210,6 +217,7 @@ pub async fn delete_timerplan(id: usize) -> Result<impl Reply, Infallible> {
 		}
 	}
 }
+#[route(path=("domorust-api" / "timerplans" / usize / "duplicate"), method="POST", query_params=true, needed_rights=2)]
 pub async fn duplicate_timerplan(id: usize, params: HashMap<String, String>) -> Result<impl Reply, Infallible> {
 	match db::timers::duplicate_timerplan(id, params.get("name").unwrap()) {
 		Ok(()) => {

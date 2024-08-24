@@ -6,7 +6,7 @@ use rusqlite::Connection;
 
 pub fn get_events_scripts(params: HashMap<String, String>) -> Result<Vec<EventsScript>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let res=EventsScript::build_from_table(&connection, &params)?;
+	let res=EventsScript::get_items_from_table(&connection, &params)?;
 	Ok(res)
 }
 pub fn add_events_script(params:HashMap<String,String>) -> Result<(), Box<dyn Error>> {
@@ -37,7 +37,7 @@ pub fn delete_events_script(idx: usize) -> Result<(), Box<dyn Error>> {
 }
 pub fn get_devices_current_status(params:HashMap<String,String>) -> Result<Vec<DeviceCurrentStatus>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let mut res=DeviceCurrentStatus::build_from_table(&connection, &params)?;
+	let mut res=DeviceCurrentStatus::get_items_from_table(&connection, &params)?;
 	for r in &mut res {
 		r.Values = r.nValue.to_string() + "/" + r.Value.as_str();
 	}

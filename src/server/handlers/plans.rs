@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 use std::convert::Infallible;
 
+use domorust_macros::route;
 use warp::reply::{self, Reply};
 
 use crate::db;
 use crate::server::responses::{RequestError, RequestResult, RequestResult2};
 
+#[route(path=("domorust-api" / "floorplans"), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_floorplans(params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::plans::get_floorplans(params) {
 		Ok(devices) => {
@@ -23,6 +25,7 @@ pub async fn get_floorplans(params: HashMap<String, String>) -> Result<impl warp
 		}
 	}
 }
+#[route(path=("domorust-api" / "floorplans" / usize), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_floorplan(idx:usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::plans::get_floorplan(idx, params) {
 		Ok(fplan) => {
@@ -33,6 +36,7 @@ pub async fn get_floorplan(idx:usize, params: HashMap<String, String>) -> Result
 		}
 	}
 }
+#[route(path=("domorust-api" / "floorplans" / usize / "image"), method="GET", query_params=false, needed_rights=0)]
 pub async fn get_floorplan_image(idx:usize) -> Result<impl warp::Reply, Infallible> {
 	match db::plans::get_floorplan_image(idx) {
 		Ok(data) => {
@@ -43,7 +47,7 @@ pub async fn get_floorplan_image(idx:usize) -> Result<impl warp::Reply, Infallib
 		}
 	}
 }
-
+#[route(path=("domorust-api" / "plans"), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_plans(params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::plans::get_plans(params) {
 		Ok(devices) => {
@@ -54,6 +58,7 @@ pub async fn get_plans(params: HashMap<String, String>) -> Result<impl warp::Rep
 		}
 	}
 }
+#[route(path=("domorust-api" / "plans" / usize), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_plan(idx:usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::plans::get_plan(idx, params) {
 		Ok(plan) => {
@@ -64,6 +69,7 @@ pub async fn get_plan(idx:usize, params: HashMap<String, String>) -> Result<impl
 		}
 	}
 }
+#[route(path=("domorust-api" / "floorplans" / usize / "plans"), method="POST", query_params=true, needed_rights=2)]
 pub async fn add_plan(flooridx:usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::plans::add_plan(flooridx, params) {
 		Ok(()) => {
@@ -74,7 +80,8 @@ pub async fn add_plan(flooridx:usize, params: HashMap<String, String>) -> Result
 		}
 	}
 }
-pub async fn update_plan(idx:usize,params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
+#[route(path=("domorust-api" / "plans" / usize), method="PUT", query_params=true, needed_rights=2)]
+pub async fn update_plan(idx:usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::plans::update_plan(idx, params) {
 		Ok(()) => {
 			Ok(reply::json(&RequestResult::<String>::new("UpdatePlan", vec![])).into_response())
@@ -84,6 +91,7 @@ pub async fn update_plan(idx:usize,params: HashMap<String, String>) -> Result<im
 		}
 	}
 }
+#[route(path=("domorust-api" / "plans" / usize), method="DELETE", query_params=false, needed_rights=2)]
 pub async fn delete_plan(idx:usize) -> Result<impl warp::Reply, Infallible> {
 	match db::plans::delete_plan(idx) {
 		Ok(()) => {
@@ -94,6 +102,7 @@ pub async fn delete_plan(idx:usize) -> Result<impl warp::Reply, Infallible> {
 		}
 	}
 }
+#[route(path=("domorust-api" / "plans" / usize / "devices"), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_plan_devices(idx:usize,params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::plans::get_plan_devices(idx, params) {
 		Ok(res) => {

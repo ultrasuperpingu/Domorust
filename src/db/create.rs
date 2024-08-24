@@ -1,8 +1,10 @@
 #![allow(non_upper_case_globals)]
 use std::{error::Error, path::Path};
 
-use domorust_models::{settings::{GPSCoord, Settings}, ToSqlRowFields};
+use chrono::Utc;
+use domorust_models::{settings::{GPSCoord, Settings}, utils::base64, ToSqlRowFields};
 use rusqlite::Connection;
+use sha2::{Digest, Sha256};
 use crate::db;
 const DB_VERSION : u32 = 169;
 
@@ -239,12 +241,13 @@ const sqlCreateUsers : &str = r###"
 CREATE TABLE IF NOT EXISTS [Users] (
 	[ID] INTEGER PRIMARY KEY, 
 	[Active] INTEGER NOT NULL DEFAULT 0, 
-	[Username] VARCHAR(200) NOT NULL, 
+	[Username] VARCHAR(200) UNIQUE NOT NULL, 
 	[Password] VARCHAR(200) NOT NULL, 
-	[MFAsecret] VARCHAR(200) NULL, 
 	[Rights] INTEGER DEFAULT 255, 
 	[TabsEnabled] INTEGER DEFAULT 255, 
-	[RemoteSharing] INTEGER DEFAULT 0
+	[RemoteSharing] INTEGER DEFAULT 0,
+	[MFAsecret] VARCHAR(200) NULL, 
+	[Salt] VARCHAR(64) NOT NULL DEFAULT ''
 );"###;
 
 const sqlCreateMeter : &str = r###"
@@ -434,7 +437,7 @@ CREATE TABLE IF NOT EXISTS [EventMaster] (
 	[Status] INTEGER DEFAULT 0
 );"###;
 
-const sqlCreateEventRules : &str = r###"
+/*const sqlCreateEventRules : &str = r###"
 CREATE TABLE IF NOT EXISTS [EventRules] (
 	[ID] INTEGER PRIMARY KEY, 
 	[EMID] INTEGER, 
@@ -442,7 +445,7 @@ CREATE TABLE IF NOT EXISTS [EventRules] (
 	[Actions] TEXT NOT NULL, 
 	[SequenceNo] INTEGER NOT NULL, 
 	FOREIGN KEY (EMID) REFERENCES EventMaster(ID)
-);"###;
+);"###;*/
 
 const sqlCreateWOLNodes : &str = r###"
 CREATE TABLE IF NOT EXISTS [WOLNodes] (
@@ -664,6 +667,9 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 		return Ok(false)
 	}
 	let connection=Connection::open("domorust.db")?;
+	connection.execute("ALTER TABLE Users ADD Salt VARCHAR(40) NOT NULL DEFAULT ''", [])?;
+	//connection.execute("ALTER TABLE Users DROP RemoteSharing", [])?;
+	connection.execute("UPDATE Users SET Password='', Active=FALSE", [])?;
 	connection.execute("ALTER TABLE Preferences ADD fValue REAL", [])?;
 	let location = connection.query_row("Select sValue from Preferences WHERE Key='Location'", [], |row| {
 		row.get::<usize, GPSCoord>(0)
@@ -685,8 +691,35 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 	connection.execute("DROP TABLE ToonDevices", [])?;
 	connection.execute("DROP TABLE ZWaveNodes", [])?;
 	
+	let mut stmt = connection.prepare("SELECT ID, Username FROM Users")?;
+	let id_users : Vec<Result<(usize, String), _>>= stmt.query_map([], |row| {
+		let id=row.get::<usize, usize>(0)?;
+		let username = row.get::<usize, String>(1)?;
+		Ok((id, username))
+	})?.collect();
+	for (id, username) in id_users.into_iter().flatten() {
+		let dec = base64::decode(username)?;
+		let str=dec.as_slice();
+		let usernamedec=std::str::from_utf8(str)?.to_string();
+		let salt=format!("{:X}",Sha256::digest(Utc::now().naive_local().to_string()+usernamedec.as_str()));
+		connection.execute("UPDATE Users SET Username=?1, Salt=?3 WHERE ID=?2", (usernamedec,id,salt))?;
+	}
+	ensure_constraints(&connection, "Users", sqlCreateUsers)?;
+
 	Ok(true)
 }
+
+fn ensure_constraints(connection:&Connection, table:&str, createString:&str) -> Result<(), Box<dyn Error>>{
+	connection.execute("PRAGMA foreign_keys=off;", [])?;
+	connection.execute("BEGIN TRANSACTION;", [])?;
+	connection.execute(("ALTER TABLE ".to_string() + table + " RENAME TO "+table+"_old;").as_str(), [])?;
+	connection.execute(createString, [])?;
+	connection.execute(("INSERT INTO ".to_string() + table + " SELECT * FROM " + table + "_old;").as_str(), [])?;
+	connection.execute("COMMIT;", [])?;
+	connection.execute("PRAGMA foreign_keys=on;", [])?;
+	Ok(())
+}
+
 pub fn create_tables_if_needed() -> Result<(), rusqlite::Error> {
 	let connection=Connection::open("domorust.db")?;
 	connection.execute("BEGIN TRANSACTION;", [])?;
@@ -728,7 +761,7 @@ pub fn create_tables_if_needed() -> Result<(), rusqlite::Error> {
 	//connection.execute(sqlCreateSharedDevices, [])?;
 	//connection.execute(sqlCreateSharedDevicesTrigger, [])?;
 	connection.execute(sqlCreateEventMaster, [])?;
-	connection.execute(sqlCreateEventRules, [])?;
+	//connection.execute(sqlCreateEventRules, [])?;
 	connection.execute(sqlCreateWOLNodes, [])?;
 	connection.execute(sqlCreatePercentage, [])?;
 	connection.execute(sqlCreatePercentage_Calendar, [])?;
@@ -805,7 +838,7 @@ pub fn set_default_values() -> Result<(), Box<dyn Error>> {
 		//place here actions that needs to be performed on new databases
 		connection.execute("INSERT INTO Plans (Name) VALUES ('$Hidden Devices')", [])?;
 		// Add hardware for internal use
-		connection.execute("INSERT INTO Hardware (Name, Enabled, Type, Address, Port, Username, Password, Mode1, Mode2, Mode3, Mode4, Mode5, Mode6) VALUES ('Domoticz Internal',1, %d,'',1,'','',0,0,0,0,0,0)", [1])?;
+		connection.execute("INSERT INTO Hardware (Name, Enabled, Type, Address, Port, Username, Password, Mode1, Mode2, Mode3, Mode4, Mode5, Mode6) VALUES ('Domoticz Internal',1, 1,'',1,'','',0,0,0,0,0,0)", [])?;
 		//connection.execute("INSERT INTO Users (Active, Username, Password, Rights, TabsEnabled) VALUES (1, '%s', '%s', %d, 0x1F)", (base64::encode("admin"), GenerateMD5Hash("domorust").c_str(), 2));
 		//connection.execute("INSERT INTO Applications (Active, Public, Applicationname) VALUES (1, 1, 'domoticzUI')", []);
 		//connection.execute("INSERT INTO Applications (Active, Public, Applicationname) VALUES (0, 0, 'domoticzMobileApp')", []);

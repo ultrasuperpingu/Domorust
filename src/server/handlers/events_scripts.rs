@@ -1,13 +1,13 @@
 use std::{collections::HashMap, convert::Infallible};
 
-use warp::reject::Rejection;
+use domorust_macros::route;
 use warp::reply::{self, Reply};
 use warp::http::StatusCode;
 
 use crate::db;
 use crate::server::responses::{RequestError, RequestResult};
 
-
+#[route(path=("domorust-api" / "events_scripts"), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_events_scripts(params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::events_scripts::get_events_scripts(params) {
 		Ok(res) => {
@@ -18,8 +18,8 @@ pub async fn get_events_scripts(params: HashMap<String, String>) -> Result<impl 
 		}
 	}
 }
-
-pub async fn add_events_script(params: HashMap<String, String>) -> Result<impl warp::Reply, Rejection> {
+#[route(path=("domorust-api" / "events_scripts"), method="POST", query_params=true, needed_rights=2)]
+pub async fn add_events_script(params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::events_scripts::add_events_script(params) {
 		Ok(()) => {
 			Ok(warp::reply::json(&RequestResult::<String>::new("AddEventScript", vec![])).into_response())
@@ -29,7 +29,7 @@ pub async fn add_events_script(params: HashMap<String, String>) -> Result<impl w
 		}
 	}
 }
-
+#[route(path=("domorust-api" / "events_scripts" / usize), method="PUT", query_params=true, needed_rights=2)]
 pub async fn update_events_script(idx: usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::events_scripts::update_events_script(idx, params) {
 		Ok(()) => {
@@ -40,7 +40,7 @@ pub async fn update_events_script(idx: usize, params: HashMap<String, String>) -
 		}
 	}
 }
-
+#[route(path=("domorust-api" / "events_scripts" / usize), method="DELETE", query_params=true, needed_rights=2)]
 pub async fn delete_events_script(idx: usize, _params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::events_scripts::delete_events_script(idx) {
 		Ok(()) => {
@@ -51,6 +51,7 @@ pub async fn delete_events_script(idx: usize, _params: HashMap<String, String>) 
 		}
 	}
 }
+#[route(path=("domorust-api" / "events_scripts" / "devices_current_status"), method="GET", query_params=true, needed_rights=0)]
 pub async fn get_devices_current_status(params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
 	match db::events_scripts::get_devices_current_status(params) {
 		Ok(res) => {
