@@ -75,38 +75,48 @@ impl Display for ParseEnumError {
 	}
 }
 
-
-
 #[derive(Clone, Debug, Default, Serialize, FromSqlRow, FromSqlTable, FromHashMap, ToSqlQuery)]
 #[table_name("Timers")]
 pub struct Timer {
 	#[serde(rename="idx", with="crate::utils::string")]
 	#[primary_key]
 	pub ID:usize,
+	#[param_name("active")]
 	pub Active:bool,
+	#[param_name("command")]
 	pub Cmd:u8,
 	pub Color:String,
+	#[param_name("date")]
 	pub Date: String,
+	#[param_name("days")]
 	pub Days:u16,
+	#[param_name("vunit")]
 	pub DeviceRowID: usize,
+	#[param_name("level")]
 	pub Level:u8,
 	pub MDay:u8,
 	pub Month:u8,
 	pub Occurence:u8,
+	#[param_name("command")]
 	pub Persistant:bool,
+	#[param_name("randomness")]
 	pub Randomness:bool,
+	#[param_name("timertype")]
 	pub Time: String,
+	#[serde(skip)]
+	pub TimerPlan: usize,
+	#[param_name("timertype")]
 	pub Type: TimerType,
 }
 #[derive(Clone, Debug, Default, Serialize, FromSqlRow, FromSqlTable, ToSqlQuery, FromHashMap)]
 #[table_name("TimerPlans")]
 pub struct TimerPlan {
+	#[serde(rename="idx")]
+	#[primary_key]
+	pub ID:usize,
 	#[skip_field]
 	pub Active:bool,
 	pub Name:String,
-	#[column_name("ID")]
-	#[primary_key]
-	pub idx:usize
 }
 pub fn sun_rise_set(latitude:f64, longitude:f64, now: DateTime<Local>) -> (DateTime<Local>, DateTime<Local>) {
 	let (sunrise_unix, sunset_unix) = sunrise::sunrise_sunset(latitude, longitude, now.year(), now.month(), now.day());

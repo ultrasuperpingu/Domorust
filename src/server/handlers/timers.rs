@@ -1,8 +1,7 @@
 use std::{collections::HashMap, convert::Infallible};
 
 use domorust_macros::route;
-use domorust_models::timers::{Timer, TimerPlan, TimerType};
-use num_traits::FromPrimitive;
+use domorust_models::timers::{Timer, TimerPlan};
 use warp::http;
 use warp::reply::{self, Reply};
 
@@ -51,56 +50,16 @@ pub async fn get_device_timers(dev_idx:usize) -> Result<impl Reply, Infallible> 
 
 #[route(path=("domorust-api" / "devices" / usize / "timers"), method="POST", query_params=true, needed_rights=2)]
 pub async fn add_device_timer(dev_id:usize, params: HashMap<String, String>) -> Result<impl Reply, Infallible> {
-	let empty=String::new();
-	let zero_str="0".to_string();
-	let two_str="2".to_string();
-	let d128_str="128".to_string();
-	let false_str="0".to_string();
-	let active_str = params.get("active").unwrap_or(&false_str);
-	let command_str = params.get("command").unwrap_or(&zero_str);
-	let days_str = params.get("days").unwrap_or(&d128_str);
-	let hour_str = params.get("hour").unwrap_or(&zero_str);
-	let min_str = params.get("min").unwrap_or(&zero_str);
-	let date_str = params.get("date").unwrap_or(&zero_str);
-	let level_str = params.get("level").unwrap_or(&zero_str);
-	let randomness_str = params.get("randomness").unwrap_or(&false_str);
-	let timertype_str = params.get("timertype").unwrap_or(&two_str);
-	let _vunit_str = params.get("vunit").unwrap_or(&empty);
-
-	let timer_type = timertype_str.parse::<u8>().unwrap();
-	let command = command_str.parse::<u8>().unwrap();
-	let level = level_str.parse::<u8>().unwrap();
-	let color_str="";
-	let randomness = randomness_str.parse::<u8>().unwrap();
-	let days = days_str.parse::<u16>().unwrap();
-	let month = level_str.parse::<u8>().unwrap();
-	let mday = level_str.parse::<u8>().unwrap();
-	let occurence = level_str.parse::<u8>().unwrap();
-	let timer = Timer{
-		Active:active_str.to_lowercase() == "true",
-		Date:date_str.to_string(),
-		DeviceRowID: dev_id,
-		Time:hour_str.to_owned()+":"+min_str,
-		Type:FromPrimitive::from_u8(timer_type).unwrap_or(TimerType::OnTime),
-		Cmd:command,
-		Level:level,
-		Color:color_str.to_string(),
-		Randomness:randomness == 1,
-		Days:days,
-		Month:month,
-		MDay:mday,
-		Occurence:occurence,
-		Persistant:false,
-		ID:0
-	};
-	match db::timers::add_timer(dev_id, &timer) {
+	let mut params = params.clone();
+	params.insert("dev_row_id".to_string(), dev_id.to_string());
+	match db::timers::add_timer(&params) {
 		Ok(()) => Ok(reply::with_status(reply::json(&RequestResult::<String>::new("UpdateTimer", vec![])),http::StatusCode::OK)),
 		Err(e) => Ok(reply::with_status(reply::json(&RequestError::new("UpdateTimer", e.into())),http::StatusCode::INTERNAL_SERVER_ERROR))
 	}
 }
 #[route(path=("domorust-api" / "timers" / usize), method="PUT", query_params=true, needed_rights=2)]
 pub async fn update_timer(idx: usize,params: HashMap<String, String>) -> Result<impl Reply, Infallible> {
-	let empty=String::new();
+	/*let empty=String::new();
 	let zero_str="0".to_string();
 	let two_str="2".to_string();
 	let d128_str="128".to_string();
@@ -149,8 +108,15 @@ pub async fn update_timer(idx: usize,params: HashMap<String, String>) -> Result<
 		Err(e) => {
 			Ok(reply::with_status(reply::json(&RequestError::new("UpdateTimer", e)),http::StatusCode::INTERNAL_SERVER_ERROR))
 		}
+	}*/
+	match db::timers::update_timer(idx, &params) {
+		Ok(()) => {
+			Ok(reply::with_status(reply::json(&RequestResult::<String>::new("UpdateTimer", vec![])),http::StatusCode::OK))
+		},
+		Err(e) => {
+			Ok(reply::with_status(reply::json(&RequestError::new("UpdateTimer", e)),http::StatusCode::INTERNAL_SERVER_ERROR))
+		}
 	}
-	
 }
 #[route(path=("domorust-api" / "timers" / usize), method="DELETE", query_params=false, needed_rights=2)]
 pub async fn delete_timer(idx: usize) -> Result<impl Reply, Infallible> {
