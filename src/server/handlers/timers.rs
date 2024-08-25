@@ -18,8 +18,19 @@ pub async fn get_timers(params: HashMap<String, String>) -> Result<reply::Respon
 			Ok(reply::json(&res).into_response())
 		},
 		Err(e) => {
-			let res=RequestError::new("GetTimers", e);
+			let res=RequestError::new("GetTimers", e.into());
 			Ok(reply::with_status(reply::json(&res), http::StatusCode::INTERNAL_SERVER_ERROR).into_response())
+		}
+	}
+}
+#[route(path=("domorust-api" / "timers" / usize), method="GET", query_params=false, needed_rights=0)]
+pub async fn get_timer(idx: usize) -> Result<impl Reply, Infallible> {
+	match db::timers::get_timer(idx) {
+		Ok(t) => {
+			Ok(reply::with_status(reply::json(&RequestResult::<Timer>::new("GetTimer", vec![t])), http::StatusCode::OK))
+		},
+		Err(e) => {
+			Ok(reply::with_status(reply::json(&RequestError::new("GetTimer", e.into())),http::StatusCode::INTERNAL_SERVER_ERROR))
 		}
 	}
 }
@@ -37,17 +48,7 @@ pub async fn get_device_timers(dev_idx:usize) -> Result<impl Reply, Infallible> 
 		}
 	}
 }
-#[route(path=("domorust-api" / "timers" / usize), method="GET", query_params=false, needed_rights=0)]
-pub async fn get_timer(idx:usize) -> Result<impl Reply, Infallible> {
-	match db::timers::get_timer(idx) {
-		Ok(t) => {
-			Ok(reply::with_status(reply::json(&RequestResult::<Timer>::new("GetTimer", vec![t])), http::StatusCode::OK))
-		},
-		Err(e) => {
-			Ok(reply::with_status(reply::json(&RequestError::new("GetTimer", e)),http::StatusCode::INTERNAL_SERVER_ERROR))
-		}
-	}
-}
+
 #[route(path=("domorust-api" / "devices" / usize / "timers"), method="POST", query_params=true, needed_rights=2)]
 pub async fn add_device_timer(dev_id:usize, params: HashMap<String, String>) -> Result<impl Reply, Infallible> {
 	let empty=String::new();
@@ -94,7 +95,7 @@ pub async fn add_device_timer(dev_id:usize, params: HashMap<String, String>) -> 
 	};
 	match db::timers::add_timer(dev_id, &timer) {
 		Ok(()) => Ok(reply::with_status(reply::json(&RequestResult::<String>::new("UpdateTimer", vec![])),http::StatusCode::OK)),
-		Err(e) => Ok(reply::with_status(reply::json(&RequestError::new("UpdateTimer", e)),http::StatusCode::INTERNAL_SERVER_ERROR))
+		Err(e) => Ok(reply::with_status(reply::json(&RequestError::new("UpdateTimer", e.into())),http::StatusCode::INTERNAL_SERVER_ERROR))
 	}
 }
 #[route(path=("domorust-api" / "timers" / usize), method="PUT", query_params=true, needed_rights=2)]
@@ -158,7 +159,7 @@ pub async fn delete_timer(idx: usize) -> Result<impl Reply, Infallible> {
 			Ok(reply::with_status(reply::json(&RequestResult::<String>::new("DeleteTimer", vec![])),http::StatusCode::OK))
 		},
 		Err(e) => {
-			Ok(reply::with_status(reply::json(&RequestError::new("DeleteTimer", e)),http::StatusCode::INTERNAL_SERVER_ERROR))
+			Ok(reply::with_status(reply::json(&RequestError::new("DeleteTimer", e.into())),http::StatusCode::INTERNAL_SERVER_ERROR))
 		}
 	}
 }
@@ -169,18 +170,18 @@ pub async fn delete_device_timers(dev_id: usize) -> Result<impl Reply, Infallibl
 			Ok(reply::with_status(reply::json(&RequestResult::<String>::new("ClearTimer", vec![])),http::StatusCode::OK))
 		},
 		Err(e) => {
-			Ok(reply::with_status(reply::json(&RequestError::new("ClearTimer", e)),http::StatusCode::INTERNAL_SERVER_ERROR))
+			Ok(reply::with_status(reply::json(&RequestError::new("ClearTimer", e.into())),http::StatusCode::INTERNAL_SERVER_ERROR))
 		}
 	}
 }
-#[route(path=("domorust-api" / "timerplans"), method="GET", query_params=false, needed_rights=0)]
-pub async fn get_timerplans() -> Result<impl Reply, Infallible> {
-	match db::timers::get_timerplans() {
+#[route(path=("domorust-api" / "timerplans"), method="GET", query_params=true, needed_rights=0)]
+pub async fn get_timerplans(filters: HashMap<String, String>) -> Result<impl Reply, Infallible> {
+	match db::timers::get_timerplans(filters) {
 		Ok(res) => {
 			Ok(reply::with_status(reply::json(&RequestResult::<TimerPlan>::new("GetTimerPlan", res)),http::StatusCode::OK))
 		},
 		Err(e) => {
-			Ok(reply::with_status(reply::json(&RequestError::new("GetTimerPlan", e)),http::StatusCode::INTERNAL_SERVER_ERROR))
+			Ok(reply::with_status(reply::json(&RequestError::new("GetTimerPlan", e.into())),http::StatusCode::INTERNAL_SERVER_ERROR))
 		}
 	}
 }
@@ -213,7 +214,7 @@ pub async fn delete_timerplan(id: usize) -> Result<impl Reply, Infallible> {
 			Ok(reply::with_status(reply::json(&RequestResult::<String>::new("DeleteTimerPlan", vec![])),http::StatusCode::OK))
 		},
 		Err(e) => {
-			Ok(reply::with_status(reply::json(&RequestError::new("DeleteTimerPlan", e)),http::StatusCode::INTERNAL_SERVER_ERROR))
+			Ok(reply::with_status(reply::json(&RequestError::new("DeleteTimerPlan", e.into())),http::StatusCode::INTERNAL_SERVER_ERROR))
 		}
 	}
 }

@@ -56,15 +56,16 @@ pub fn add_custom_icon(params:HashMap<String,String>) -> Result<(), Box<dyn Erro
 	var.add_query(&connection)?;
 	Ok(())
 }
-pub fn update_custom_icon(idx:usize, params:HashMap<String,String>) -> Result<(), Box<dyn Error>> {
+pub fn update_custom_icon(id:usize, params:HashMap<String,String>) -> Result<(), Box<dyn Error>> {
 
 	let connection = Connection::open("domorust.db")?;
 	//TODO: find a way to not clone the map
 	let mut params=params.clone();
-	params.insert("idx".to_string(), idx.to_string());
-	let var=CustomIcon::from_hashmap(&params)?;
-	//TODO: merge with database values
-	var.update_query(&connection)?;
+	params.insert("idx".to_string(), id.to_string());
+	//TODO: do not read in db to merge, just make the update on provided fields
+	let mut a=get_custom_icon(id)?;
+	a.update_from_hashmap(&params)?;
+	a.update_query(&connection)?;
 	Ok(())
 }
 

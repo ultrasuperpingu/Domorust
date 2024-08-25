@@ -9,7 +9,11 @@ pub fn get_scenes(params: HashMap<String, String>) -> Result<Vec<Scene>, Box<dyn
 	let res=Scene::get_items_from_table(&connection, &params)?;
 	Ok(res)
 }
-
+pub fn get_scene(id: usize) -> Result<Scene, Box<dyn Error>> {
+	let connection = Connection::open("domorust.db")?;
+	let res=Scene::get_item_from_table(&connection, id)?;
+	Ok(res)
+}
 pub fn add_scene(params:HashMap<String,String>) -> Result<(), Box<dyn Error>> {
 
 	let connection = Connection::open("domorust.db")?;
@@ -19,15 +23,13 @@ pub fn add_scene(params:HashMap<String,String>) -> Result<(), Box<dyn Error>> {
 	Ok(())
 }
 
-pub fn update_scene(idx:usize, params:HashMap<String,String>) -> Result<(), Box<dyn Error>> {
+pub fn update_scene(id:usize, params:HashMap<String,String>) -> Result<(), Box<dyn Error>> {
 
 	let connection = Connection::open("domorust.db")?;
-	//TODO: find a way to not clone the map
-	let mut params=params.clone();
-	params.insert("idx".to_string(), idx.to_string());
-	let var=Scene::from_hashmap(&params)?;
-	//TODO: merge with database values
-	var.update_query(&connection)?;
+	//TODO: do not read in db to merge, just make the update on provided fields
+	let mut p=get_scene(id)?;
+	p.update_from_hashmap(&params)?;
+	p.update_query(&connection)?;
 	Ok(())
 }
 

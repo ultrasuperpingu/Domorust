@@ -1,16 +1,16 @@
 #![allow(non_snake_case)]
 
-use std::{error::Error, fmt::Display};
+use std::{error::Error, fmt::Display, str::FromStr};
 
 use chrono::{DateTime, Datelike, Duration, Local, NaiveTime, Utc};
-use domorust_macros::{FromSqlRow, FromSqlTable};
+use domorust_macros::{FromHashMap, FromSqlRow, FromSqlTable, ToSqlQuery};
 use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
 use rusqlite::{types::{FromSql, FromSqlError}, ToSql};
 use serde::Serialize;
 use serde_repr::Serialize_repr;
 
-use crate::{FromSqlRow, FromSqlTable};
+use crate::{FromSqlRow, FromSqlTable, FromHashMap, ToSqlQuery};
 
 #[derive(Clone, Debug, Default, Serialize_repr, Copy)]
 #[derive(FromPrimitive)]
@@ -47,7 +47,13 @@ pub enum TimerType {
 	BeforeAstronomicalTwighlightEnd,
 	AfterAstronomicalTwighlightEnd,
 }
+impl FromStr for TimerType {
+	type Err = ParseEnumError;
 
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		TimerType::from_u8(s.parse().map_err(|_| ParseEnumError{})?).ok_or(ParseEnumError{})
+	}
+}
 impl FromSql for TimerType {
 	fn column_result(value: rusqlite::types::ValueRef<'_>) -> rusqlite::types::FromSqlResult<Self> {
 		let val=u8::try_from(value.as_i64()?).map_err(|e|{FromSqlError::Other(Box::new(e))})?;
@@ -71,7 +77,7 @@ impl Display for ParseEnumError {
 
 
 
-#[derive(Clone, Debug, Default, Serialize, FromSqlRow, FromSqlTable)]
+#[derive(Clone, Debug, Default, Serialize, FromSqlRow, FromSqlTable, FromHashMap, ToSqlQuery)]
 #[table_name("Timers")]
 pub struct Timer {
 	#[serde(rename="idx", with="crate::utils::string")]
@@ -92,12 +98,14 @@ pub struct Timer {
 	pub Time: String,
 	pub Type: TimerType,
 }
-#[derive(Clone, Debug, Default, Serialize, FromSqlRow)]
+#[derive(Clone, Debug, Default, Serialize, FromSqlRow, FromSqlTable, ToSqlQuery, FromHashMap)]
+#[table_name("TimerPlans")]
 pub struct TimerPlan {
 	#[skip_field]
 	pub Active:bool,
 	pub Name:String,
 	#[column_name("ID")]
+	#[primary_key]
 	pub idx:usize
 }
 pub fn sun_rise_set(latitude:f64, longitude:f64, now: DateTime<Local>) -> (DateTime<Local>, DateTime<Local>) {

@@ -124,6 +124,7 @@ fn domorust_api() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Re
 	balanced_or_tree!(
 		//crate::server::routing::applications::applications(),
 		crate::server::handlers::applications::route_get_applications(),
+		crate::server::handlers::applications::route_get_application(),
 		crate::server::handlers::applications::route_add_application(),
 		crate::server::handlers::applications::route_update_application(),
 		crate::server::handlers::applications::route_delete_application(),
@@ -191,6 +192,7 @@ fn domorust_api() -> impl Filter<Extract = (impl warp::Reply,), Error = warp::Re
 
 		//crate::server::routing::scenes::scenes(),
 		crate::server::handlers::scenes::route_get_scenes(),
+		crate::server::handlers::scenes::route_get_scene(),
 		crate::server::handlers::scenes::route_add_scene(),
 		crate::server::handlers::scenes::route_update_scene(),
 		crate::server::handlers::scenes::route_delete_scene(),

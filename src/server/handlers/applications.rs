@@ -15,7 +15,19 @@ pub async fn get_applications(params: HashMap<String, String>) -> Result<Respons
 		},
 		Err(e) => {
 			eprintln!("Error on get_application: {}", e);
-			Ok(reply::with_status(reply::json(&RequestError::new("GetApplications", e)), StatusCode::INTERNAL_SERVER_ERROR).into_response())
+			Ok(reply::with_status(reply::json(&RequestError::new("GetApplications", e.into())), StatusCode::INTERNAL_SERVER_ERROR).into_response())
+		}
+	}
+}
+#[route(path=("domorust-api" / "applications" / usize), method="GET", query_params=false, needed_rights=0)]
+pub async fn get_application(id: usize) -> Result<Response, Infallible> {
+	match db::applications::get_application(id) {
+		Ok(res) => {
+			Ok(reply::with_status(reply::json(&RequestResult::new("GetApplications", vec![res])), StatusCode::OK).into_response())
+		},
+		Err(e) => {
+			eprintln!("Error on get_application: {}", e);
+			Ok(reply::with_status(reply::json(&RequestError::new("GetApplications", e.into())), StatusCode::INTERNAL_SERVER_ERROR).into_response())
 		}
 	}
 }
@@ -27,7 +39,7 @@ pub async fn add_application(params: HashMap<String, String>) -> Result<Response
 			Ok(reply::with_status(reply::json(&RequestResult::<()>::new("AddApplication",vec![])), StatusCode::OK).into_response())
 		},
 		Err(e) => {
-			Ok(reply::with_status(reply::json(&RequestError::new("AddApplication",e)), StatusCode::INTERNAL_SERVER_ERROR).into_response())
+			Ok(reply::with_status(reply::json(&RequestError::new("AddApplication", e.into())), StatusCode::INTERNAL_SERVER_ERROR).into_response())
 		}
 	}
 }
@@ -49,10 +61,10 @@ pub async fn delete_application(idx: usize, _params: HashMap<String, String>) ->
 	//let query=format!("DELETE FROM Application WHERE ID == {}", idx);
 	match db::applications::delete_application(idx) {
 		Ok(()) => {
-			Ok(reply::with_status(reply::json(&RequestResult::<()>::new("DeleteApplication",vec![])), StatusCode::OK).into_response())
+			Ok(reply::with_status(reply::json(&RequestResult::<()>::new("DeleteApplication", vec![])), StatusCode::OK).into_response())
 		},
 		Err(e) => {
-			Ok(reply::with_status(reply::json(&RequestError::new("DeleteApplication",e)), StatusCode::INTERNAL_SERVER_ERROR).into_response())
+			Ok(reply::with_status(reply::json(&RequestError::new("DeleteApplication", e.into())), StatusCode::INTERNAL_SERVER_ERROR).into_response())
 		}
 	}
 }

@@ -25,14 +25,14 @@ pub async fn get_floorplans(params: HashMap<String, String>) -> Result<impl warp
 		}
 	}
 }
-#[route(path=("domorust-api" / "floorplans" / usize), method="GET", query_params=true, needed_rights=0)]
-pub async fn get_floorplan(idx:usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
-	match db::plans::get_floorplan(idx, params) {
+#[route(path=("domorust-api" / "floorplans" / usize), method="GET", query_params=false, needed_rights=0)]
+pub async fn get_floorplan(idx:usize) -> Result<impl warp::Reply, Infallible> {
+	match db::plans::get_floorplan(idx) {
 		Ok(fplan) => {
 			Ok(reply::json(&RequestResult::new("Plans", vec![fplan])).into_response())
 		},
 		Err(e) => {
-			Ok(reply::with_status(reply::json(&RequestError::new("Plans", e)), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response())
+			Ok(reply::with_status(reply::json(&RequestError::new("Plans", e.into())), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response())
 		}
 	}
 }
@@ -54,18 +54,18 @@ pub async fn get_plans(params: HashMap<String, String>) -> Result<impl warp::Rep
 			Ok(reply::json(&RequestResult::new("Plans", devices)).into_response())
 		},
 		Err(e) => {
-			Ok(reply::with_status(reply::json(&RequestError::new("Plans", e)), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response())
+			Ok(reply::with_status(reply::json(&RequestError::new("Plans", e.into())), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response())
 		}
 	}
 }
-#[route(path=("domorust-api" / "plans" / usize), method="GET", query_params=true, needed_rights=0)]
-pub async fn get_plan(idx:usize, params: HashMap<String, String>) -> Result<impl warp::Reply, Infallible> {
-	match db::plans::get_plan(idx, params) {
+#[route(path=("domorust-api" / "plans" / usize), method="GET", query_params=false, needed_rights=0)]
+pub async fn get_plan(idx:usize) -> Result<impl warp::Reply, Infallible> {
+	match db::plans::get_plan(idx) {
 		Ok(plan) => {
 			Ok(reply::json(&RequestResult::new("Plans", vec![plan])).into_response())
 		},
 		Err(e) => {
-			Ok(reply::with_status(reply::json(&RequestError::new("Plans", e)), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response())
+			Ok(reply::with_status(reply::json(&RequestError::new("Plans", e.into())), warp::http::StatusCode::INTERNAL_SERVER_ERROR).into_response())
 		}
 	}
 }

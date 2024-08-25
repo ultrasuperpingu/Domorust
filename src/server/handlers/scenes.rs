@@ -19,6 +19,17 @@ pub async fn get_scenes(params: HashMap<String, String>) -> Result<impl Reply, I
 		}
 	}
 }
+#[route(path=("domorust-api" / "scenes" / usize), method="GET", query_params=false, needed_rights=0)]
+pub async fn get_scene(id: usize) -> Result<impl Reply, Infallible> {
+	match db::scenes::get_scene(id) {
+		Ok(res) => {
+			Ok(reply::json(&RequestResult::new("GetScenes", vec![res])).into_response())
+		},
+		Err(e) => {
+			Ok(reply::with_status(reply::json(&RequestError::new("GetScenes",e)), StatusCode::INTERNAL_SERVER_ERROR).into_response())
+		}
+	}
+}
 #[route(path=("domorust-api" / "scenes"), method="POST", query_params=true, needed_rights=2)]
 pub async fn add_scene(params: HashMap<String, String>) -> Result<impl Reply, Infallible> {
 	//type=command&param=addscene&name=df&scenetype=0

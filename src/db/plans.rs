@@ -16,31 +16,30 @@ pub fn get_floorplans(params: HashMap<String, String>) -> Result<Vec<FloorPlan>,
 	} 
 	Ok(res)
 }
-pub fn get_floorplan(idx: usize,params: HashMap<String, String>) -> Result<FloorPlan, Box<dyn Error>> {
-	let mut params=params.clone();
-	params.insert("idx".to_string(), idx.to_string());
-	get_floorplans(params)?.pop().ok_or(rusqlite::Error::QueryReturnedNoRows.into())
+pub fn get_floorplan(id: usize) -> Result<FloorPlan, rusqlite::Error> {
+	let connection = Connection::open("domorust.db")?;
+	let mut res = FloorPlan::get_item_from_table(&connection, id)?;
+	res.Image="domorust-api/floorplans/".to_string()+res.ID.to_string().as_str()+"/image";
+	res.Plans = connection.query_row("SELECT COUNT(*) FROM Plans WHERE FloorplanID=?1", [res.ID], |row| {
+		row.get::<usize, usize>(0)
+	})?;
+	Ok(res)
 }
-pub fn get_floorplan_image(idx: usize) -> Result<Vec<u8>, Box<dyn Error>> {
+pub fn get_floorplan_image(id: usize) -> Result<Vec<u8>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
 	let mut stmt = connection.prepare("SELECT Image FROM FloorPlans WHERE ID=?1")?;
-	let res=stmt.query_row([idx], |row| {
+	let res=stmt.query_row([id], |row| {
 		row.get::<usize,Vec<u8>>(0)
 	});
 	Ok(res?)
 }
-pub fn get_plans(params: HashMap<String, String>) -> Result<Vec<Plan>, Box<dyn Error>> {
+pub fn get_plans(params: HashMap<String, String>) -> Result<Vec<Plan>, rusqlite::Error> {
 	let connection = Connection::open("domorust.db")?;
-	let res=Plan::get_items_from_table(&connection, &params)?;
-	Ok(res)
+	Plan::get_items_from_table(&connection, &params)
 }
-pub fn get_plan(idx:usize, params: HashMap<String, String>) -> Result<Plan, Box<dyn Error>> {
+pub fn get_plan(id:usize) -> Result<Plan, rusqlite::Error> {
 	let connection = Connection::open("domorust.db")?;
-	let mut params=params.clone();
-	params.insert("idx".to_string(), idx.to_string());
-	let mut res=Plan::get_items_from_table(&connection, &params)?;
-	// TODO: Raise error if more than one row
-	res.pop().ok_or(rusqlite::Error::QueryReturnedNoRows.into())
+	Plan::get_item_from_table(&connection, id)
 }
 pub fn add_plan(floorplanid:usize, params: HashMap<String, String>) -> Result<(), Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
@@ -50,11 +49,13 @@ pub fn add_plan(floorplanid:usize, params: HashMap<String, String>) -> Result<()
 	var.add_query(&connection)?;
 	Ok(())
 }
-pub fn update_plan(idx:usize, params: HashMap<String, String>) -> Result<(), Box<dyn Error>> {
+pub fn update_plan(id:usize, params: HashMap<String, String>) -> Result<(), Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let mut var=Plan::from_hashmap(&params)?;
-	var.FloorPlanID = idx;
-	var.update_query(&connection)?;
+	//TODO: do not read in db to merge, just make the update on provided fields
+	let mut p=get_plan(id)?;
+	p.update_from_hashmap(&params)?;
+	p.FloorPlanID = id;
+	p.update_query(&connection)?;
 	Ok(())
 }
 pub fn delete_plan(idx:usize) -> Result<(), Box<dyn Error>> {
