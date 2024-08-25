@@ -6,7 +6,6 @@ use std::{collections::HashMap, convert::Infallible};
 
 use chrono::{Duration, Utc};
 use domorust_models::users::User;
-use domorust_models::utils::base64;
 use sha2::{Digest, Sha256};
 use warp::reply::{self, Reply};
 use warp::http::StatusCode;
@@ -40,12 +39,9 @@ pub async fn login_check(_socket:Option<SocketAddr>, store: SessionWithStore<MyS
 	};
 	//TODO: Check remote addresse is the same ???
 	let username:String=store.session.get("Username").unwrap();
-	let dec=base64::decode(username).unwrap();
-	let str=dec.as_slice();
-	let decusername=std::str::from_utf8(str).unwrap();
 	Ok((warp::reply::json(
 		&AuthResponse::authorized(
-			decusername.to_string(),
+			username.to_string(),
 			store.session.get::<u16>("Rights").unwrap()
 		)
 	).into_response(), store))
@@ -70,11 +66,7 @@ pub async fn login_query(socket:Option<SocketAddr>, mut store: SessionWithStore<
 				let _= store.session.insert("NoUsers", true);
 				return Ok((reply::with_status(reply::json(&AuthResponse::no_users()), StatusCode::OK).into_response(), store))
 			}
-			//Ok(reply::json(&RequestResult::new("GetScenes".to_string(), res)).into_response())
 			let username=params.get("username").unwrap();
-			//let dec=base64::decode(username).unwrap();
-			//let str=dec.as_slice();
-			//let decusername=std::str::from_utf8(str).unwrap();
 			let u:Vec<&User>=res.iter().filter(|u| &u.Username == username).collect();
 			if u.len() > 1 {
 				return Ok((reply::with_status(reply::json(&RequestError::new("Login","".into())), StatusCode::INTERNAL_SERVER_ERROR).into_response(), store))

@@ -1,0 +1,78 @@
+[build]
+default-target = "arm-unknown-linux-gnueabihf"
+pre-build = [
+
+]
+
+[build.env]
+passthrough = [
+	"PYO3_CROSS_PYTHON_VERSION=3.8",
+]
+
+[target.arm-unknown-linux-gnueabihf]
+pre-build = [
+	"dpkg --add-architecture $CROSS_DEB_ARCH",
+	"apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libudev-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python3.8-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libpython3.8-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libpython-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python3.8:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python3.8",
+	"ln -s /usr/bin/python3.8 /usr/bin/python3",
+	"cp /usr/lib/python3.8/_sysconfigdata*.py /usr/lib/arm-linux-gnueabihf"
+]
+
+[target.arm-unknown-linux-gnueabihf.env]
+passthrough = [
+	"PYO3_CROSS_LIB_DIR=/usr/lib/arm-linux-gnueabihf",
+	"_PYTHON_SYSCONFIGDATA_NAME=_sysconfigdata__linux_arm-linux-gnueabihf",
+	"CARGO_ENCODED_RUSTFLAGS=-Clink-args=-L/usr/lib/arm-linux-gnueabihf -L/lib/arm-linux-gnueabihf -lexpat -lz" 
+]
+
+
+[target.armv7-unknown-linux-gnueabihf]
+pre-build = [
+	"dpkg --add-architecture $CROSS_DEB_ARCH",
+	"apt-get update && apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libc6:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libudev-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python3.8-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libpython3.8-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libpython-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python3.8:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python3.8",
+	"ln -s /usr/bin/python3.8 /usr/bin/python3",
+]
+
+[target.armv7-unknown-linux-gnueabihf.env]
+passthrough = [
+	"PYO3_CROSS_LIB_DIR=/usr/lib/arm-linux-gnueabihf",
+	"_PYTHON_SYSCONFIGDATA_NAME=_sysconfigdata__linux_arm-linux-gnueabihf",
+	"CARGO_ENCODED_RUSTFLAGS=-Clink-args=-L/usr/lib/arm-linux-gnueabihf -L/lib/arm-linux-gnueabihf -lexpat -lz" 
+]
+
+[target.aarch64-unknown-linux-gnu]
+pre-build = [
+	"dpkg --add-architecture $CROSS_DEB_ARCH",
+	"apt-get update && apt install --assume-yes ubuntu-release-upgrader-core && apt full-upgrade && do-release-upgrade -f DistUpgradeViewNonInteractive",
+	"apt-get install --assume-yes libssl-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libc6:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libudev-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python3.8-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libpython3.8-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes libpython-dev:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python3.8:$CROSS_DEB_ARCH",
+	"apt-get install --assume-yes python3.8",
+	"ln -s /usr/bin/python3.8 /usr/bin/python3",
+]
+
+[target.aarch64-unknown-linux-gnu.env]
+passthrough = [
+	"PYO3_CROSS_LIB_DIR=/usr/lib/arm-linux-gnueabihf",
+	"_PYTHON_SYSCONFIGDATA_NAME=_sysconfigdata__linux_arm-linux-gnueabihf",
+	"CARGO_ENCODED_RUSTFLAGS=-Clink-args=-L/usr/lib/arm-linux-gnueabihf -L/lib/arm-linux-gnueabihf -lexpat -lz" 
+]
