@@ -45,7 +45,7 @@ pub fn get_graph_data(idx: usize, sensor:&String, range:&String) -> Result<Vec<T
 	//let devices = get_devices_db().unwrap();
 	//let device = devices.iter().find(|d| {d.ID == idx.to_string()}).unwrap();
 	let connection = Connection::open("domorust.db").unwrap();
-	//let query = format!("SELECT Type, SubType, SwitchType, AddjValue, AddjMulti, AddjValue2, Options FROM DeviceStatus WHERE (ID == {} )", idx);
+	//let query = format!("SELECT Type, SubType, SwitchType, AddjValue, AddjMulti, AddjValue2, Options FROM Devices WHERE (ID == {} )", idx);
 	
 	// prix
 	//let query = format!("SELECT strftime('%%Y-%%m-%%d %%H:00:00', Date) as ymd, MIN(Value1) as u1, MIN(Value5) as u2, MIN(Value2) as d1, MIN(Value6) as d2, Price FROM {} WHERE (DeviceRowID=={}) GROUP BY ymd",

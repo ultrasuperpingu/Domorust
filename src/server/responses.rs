@@ -36,6 +36,15 @@ impl AuthResponse {
 			version: "2024.1"
 		}
 	}
+	pub fn no_active_users() -> Self {
+		Self {
+			rights: 0,
+			status: "No Active Users",
+			title: "GetAuth",
+			user: String::from(""),
+			version: "2024.1"
+		}
+	}
 	pub fn authorized(user:String, rights:u16) -> Self {
 		Self {
 			rights,

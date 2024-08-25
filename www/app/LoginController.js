@@ -47,9 +47,10 @@ define(['app'], function (app) {
 					});
 				}
 				else if (data.status == "No Active Users") {
+					// only accept to change password of the first user in the table (user have to know its username)
 					$.ajax({
 						method:"PUT",
-						url: "domorust-api/users?enabled=true" +
+						url: "domorust-api/users/1?enabled=true" +
 						"&username=" + musername +
 						"&password=" + mpassword +
 						"&rights=2" +
@@ -59,7 +60,7 @@ define(['app'], function (app) {
 						dataType: 'json',
 						success: function (data) {
 							if (data.status == "OK") {
-								ShowNotify("User Added", 2500, false);
+								ShowNotify("User Password updated", 2500, false);
 								return;
 							}
 						},

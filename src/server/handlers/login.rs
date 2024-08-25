@@ -62,9 +62,13 @@ pub async fn login_query(socket:Option<SocketAddr>, mut store: SessionWithStore<
 	params.remove("password");
 	match db::users::get_users(&params.clone()) {
 		Ok(res) => {
-			if !res.iter().any(|u| u.Active) {
+			if res.is_empty() {
 				let _= store.session.insert("NoUsers", true);
 				return Ok((reply::with_status(reply::json(&AuthResponse::no_users()), StatusCode::OK).into_response(), store))
+			}
+			else if !res.iter().any(|u| u.Active) {
+				let _= store.session.insert("NoUsers", true);
+				return Ok((reply::with_status(reply::json(&AuthResponse::no_active_users()), StatusCode::OK).into_response(), store))
 			}
 			let username=params.get("username").unwrap();
 			let u:Vec<&User>=res.iter().filter(|u| &u.Username == username).collect();
@@ -100,7 +104,7 @@ pub async fn login_query(socket:Option<SocketAddr>, mut store: SessionWithStore<
 			}
 		},
 		Err(e) => {
-			return Ok((reply::with_status(reply::json(&RequestError::new("Login",e)), StatusCode::UNAUTHORIZED).into_response(), store))
+			return Ok((reply::with_status(reply::json(&RequestError::new("Login", Box::new(e))), StatusCode::UNAUTHORIZED).into_response(), store))
 		}
 	}
 	Ok((reply::with_status(reply::json(&RequestError::new("Login","".into())), StatusCode::UNAUTHORIZED).into_response(), store))
@@ -111,7 +115,10 @@ pub async fn logout(mut store: SessionWithStore<MySessionStore>, _params: HashMa
 	Ok((reply::with_status(reply::json(&RequestResult::new("Login","".into())), StatusCode::OK).into_response(), store))
 }
 
-pub async fn test_auth(store:&SessionWithStore<MySessionStore>, addr:Option<SocketAddr>, needed_rights:i32) -> Result<(), impl warp::reply::Reply> {
+pub async fn test_auth(store:&SessionWithStore<MySessionStore>, addr:Option<SocketAddr>, needed_rights:i32) -> Result<(), warp::reply::Response> {
+	if needed_rights < 0 {
+		return Ok(())
+	}
 	if store.session.is_expired() ||
 		store.session.get::<String>("Username").is_none() ||
 		store.session.get::<u16>("Rights").is_none() ||
@@ -125,7 +132,7 @@ pub async fn test_auth(store:&SessionWithStore<MySessionStore>, addr:Option<Sock
 	}
 	let remote=store.session.get::<String>("RemoteHost").unwrap();
 	if addr.is_some() && remote != addr.unwrap().ip().to_string() {
-		//return Ok((warp::reply::with_status(warp::reply::json(&AuthResponse::unauthorized()), warp::http::StatusCode::UNAUTHORIZED).into_response(), store))
+		//return Err((warp::reply::with_status(warp::reply::json(&AuthResponse::unauthorized()), warp::http::StatusCode::UNAUTHORIZED).into_response(), store))
 	}
 	Ok(())
 }

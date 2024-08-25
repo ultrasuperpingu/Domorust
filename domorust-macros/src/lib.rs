@@ -114,6 +114,12 @@ pub fn route(attrs: TokenStream, item: TokenStream) -> TokenStream {
 	let query_form_code = query_form_filter(args.query_form);
 	let comma = if func_params.is_empty() { quote!{} } else { quote!{,} };
 	let rights = proc_macro2::TokenStream::from_str(&format!("{}",args.needed_rights)).unwrap();
+	let test_auth = if let Some(test_auth)=args.custom_test_auth {
+		quote!{#test_auth}
+		//quote!{crate::server::handlers::login::test_auth}
+	} else {
+		quote!{crate::server::handlers::login::test_auth}
+	};
 	let mut res=quote! {
 		pub(crate) fn #route_func_name() -> impl warp::Filter<Extract = (impl warp::Reply,), Error = warp::Rejection> + Clone {
 			use warp::Filter;
@@ -146,12 +152,11 @@ pub fn route(attrs: TokenStream, item: TokenStream) -> TokenStream {
 			) -> Result<(impl warp::reply::Reply, warp_sessions::SessionWithStore<crate::server::session_store::MySessionStore>), warp::Rejection>
 		{
 			println!("request path: {:?}", path);
-			if needed_rights >=0 {
-				if let Err(reply) = crate::server::handlers::login::test_auth(&store, socket, needed_rights).await {
-					println!("auth failed: {:?}", path);
-					return Ok((reply.into_response(), store));
-				}
+			if let Err(reply) = #test_auth(&store, socket, needed_rights).await {
+				println!("auth failed: {:?}", path);
+				return Ok((reply.into_response(), store));
 			}
+		
 			Ok((#func_name(#func_params_call).await?.into_response(), store))
 		}
 	};

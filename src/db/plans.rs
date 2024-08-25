@@ -71,7 +71,7 @@ pub fn delete_plan(idx:usize) -> Result<(), Box<dyn Error>> {
 
 pub fn get_plan_devices(floorplanidx:usize, _params: HashMap<String, String>) -> Result<Vec<DeviceData>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
-	let query = "SELECT * FROM DeviceStatus WHERE ID IN (SELECT DeviceRowID FROM DeviceToPlansMap WHERE PlanID = ?1)";
+	let query = "SELECT * FROM Devices WHERE ID IN (SELECT DeviceRowID FROM DeviceToPlansMap WHERE PlanID = ?1)";
 	let mut stmt = connection.prepare(query)?;
 	let mut res = vec![];
 	let dev_iter=stmt.query_map([floorplanidx], |row| {

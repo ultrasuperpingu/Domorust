@@ -26,7 +26,7 @@ pub struct EventsScript
 
 #[derive(Debug, Clone, Default, Serialize)]
 #[derive(FromSqlRow, FromSqlTable)]
-#[table_name("DeviceStatus")]
+#[table_name("Devices")]
 pub struct DeviceCurrentStatus
 {
 	#[serde(rename="id")]	

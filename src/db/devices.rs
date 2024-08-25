@@ -103,7 +103,7 @@ pub fn get_light_switches(params: HashMap<String,String>)  -> Result<Vec<DeviceD
 }
 pub fn make_favorite_device(id:usize, favorite:bool) -> Result<(), Box<dyn Error>>  {
 	let connection = Connection::open("domorust.db")?;
-	let writen = connection.execute("UPDATE DeviceStatus SET Favorite=?1 WHERE ID=?2", (favorite, id))?;
+	let writen = connection.execute("UPDATE Devices SET Favorite=?1 WHERE ID=?2", (favorite, id))?;
 	if writen != 1 {
 		Err("Request does not updated exactly one row".into())
 	} else {

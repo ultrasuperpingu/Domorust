@@ -52,7 +52,7 @@ impl Device {
 #[allow(non_snake_case)]
 #[derive(Clone, Debug, Default, Serialize)]
 #[derive(FromHashMap, FromSqlRow, FromSqlTable)]
-#[table_name("DeviceStatus")]
+#[table_name("Devices")]
 pub struct DeviceData {
 	pub AddjMulti : f32,
 	pub AddjMulti2 : f32,

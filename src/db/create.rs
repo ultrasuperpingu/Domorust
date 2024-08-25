@@ -8,8 +8,8 @@ use sha2::{Digest, Sha256};
 use crate::db;
 const DB_VERSION : u32 = 169;
 
-const sqlCreateDeviceStatus : &str = r###"
-CREATE TABLE IF NOT EXISTS [DeviceStatus] (
+const sqlCreateDevices : &str = r###"
+CREATE TABLE IF NOT EXISTS [Devices] (
 	[ID] INTEGER PRIMARY KEY, 
 	[HardwareID] INTEGER NOT NULL, 
 	[OrgHardwareID] INTEGER DEFAULT 0, 
@@ -41,10 +41,10 @@ CREATE TABLE IF NOT EXISTS [DeviceStatus] (
 	[Color] TEXT DEFAULT NULL
 );"###;
 
-const sqlCreateDeviceStatusTrigger : &str = r###"
-CREATE TRIGGER IF NOT EXISTS devicestatusupdate AFTER INSERT ON DeviceStatus
+const sqlCreateDevicesTrigger : &str = r###"
+CREATE TRIGGER IF NOT EXISTS devicestatusupdate AFTER INSERT ON Devices
 BEGIN
-	UPDATE DeviceStatus SET [Order] = (SELECT MAX([Order]) FROM DeviceStatus)+1 WHERE DeviceStatus.ID = NEW.ID;
+	UPDATE Devices SET [Order] = (SELECT MAX([Order]) FROM Devices)+1 WHERE Devices.ID = NEW.ID;
 END;"###;
 
 const sqlCreateLightingLog : &str = r###"
@@ -681,6 +681,7 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 	connection.execute("UPDATE Preferences SET fValue = CAST(sValue AS REAL) WHERE Key='TempAway'", [])?;
 	connection.execute("UPDATE Preferences SET fValue = CAST(sValue AS REAL) WHERE Key='TempComfort'", [])?;
 	connection.execute("UPDATE Preferences SET fValue = CAST(sValue AS REAL) WHERE Key='DegreeDaysBaseTemperature'", [])?;
+	connection.execute("ALTER TABLE DeviceStatus RENAME TO Devices;", [])?;
 	connection.execute("DROP TABLE EnOceanNodes", [])?;
 	connection.execute("DROP TABLE LightSubDevices", [])?;
 	connection.execute("DROP TABLE MySensors", [])?;
@@ -705,7 +706,7 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 		connection.execute("UPDATE Users SET Username=?1, Salt=?3 WHERE ID=?2", (usernamedec,id,salt))?;
 	}
 	ensure_constraints(&connection, "Users", sqlCreateUsers)?;
-
+	connection.execute("DELETE FROM UserSessions", [])?;
 	Ok(true)
 }
 
@@ -723,8 +724,8 @@ fn ensure_constraints(connection:&Connection, table:&str, createString:&str) -> 
 pub fn create_tables_if_needed() -> Result<(), rusqlite::Error> {
 	let connection=Connection::open("domorust.db")?;
 	connection.execute("BEGIN TRANSACTION;", [])?;
-	connection.execute(sqlCreateDeviceStatus, [])?;
-	connection.execute(sqlCreateDeviceStatusTrigger, [])?;
+	connection.execute(sqlCreateDevices, [])?;
+	connection.execute(sqlCreateDevicesTrigger, [])?;
 	connection.execute(sqlCreateLightingLog, [])?;
 	connection.execute(sqlCreateSceneLog, [])?;
 	connection.execute(sqlCreatePreferences, [])?;
@@ -782,7 +783,7 @@ pub fn create_tables_if_needed() -> Result<(), rusqlite::Error> {
 	connection.execute(sqlCreateMobileDevices, [])?;
 	connection.execute(sqlCreateApplications, [])?;
 	//Add indexes to log tables
-	connection.execute("create index if not exists ds_hduts_idx	on DeviceStatus(HardwareID, DeviceID, Unit, Type, SubType);", [])?;
+	connection.execute("create index if not exists ds_hduts_idx	on Devices(HardwareID, DeviceID, Unit, Type, SubType);", [])?;
 	connection.execute("create index if not exists f_id_idx		on Fan(DeviceRowID);", [])?;
 	connection.execute("create index if not exists f_id_date_idx   on Fan(DeviceRowID, Date);", [])?;
 	connection.execute("create index if not exists fc_id_idx	   on Fan_Calendar(DeviceRowID);", [])?;
@@ -830,7 +831,7 @@ pub fn set_default_values() -> Result<(), Box<dyn Error>> {
 	connection.query_row("PRAGMA foreign_keys = ON", [], |_row|{Ok(())})?;
 	connection.query_row("PRAGMA busy_timeout = 1000", [], |_row|{Ok(())})?;
 
-	let result = connection.query_row("SELECT name FROM sqlite_master WHERE type='table' AND name='DeviceStatus'",[], |_row| {
+	let result = connection.query_row("SELECT name FROM sqlite_master WHERE type='table' AND name='Devices'",[], |_row| {
 		Ok(())
 	});
 	let bNewInstall = result.is_err() && result.unwrap_err() == rusqlite::Error::QueryReturnedNoRows;

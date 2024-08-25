@@ -1,3 +1,4 @@
+
 use proc_macro2::{Ident, TokenTree};
 use syn::{meta::ParseNestedMeta, spanned::Spanned, Data, Fields, LitBool, LitInt, LitStr, Type};
 use syn::parse::Result;
@@ -239,13 +240,26 @@ fn is_option(ty: &syn::Type) -> bool {
 	idents_of_path.starts_with("Option")
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct RouteParams {
 	pub path:Option<TokenTree>,
 	pub query_params:bool,
 	pub query_form:bool,
 	pub method: String,
-	pub needed_rights: i8
+	pub needed_rights: i8,
+	pub custom_test_auth: Option<Ident>
+}
+impl Default for RouteParams {
+	fn default() -> Self {
+		Self {
+			path:None,
+			query_params:false,
+			query_form:false,
+			method: String::from("GET"),
+			needed_rights: 2,
+			custom_test_auth: None
+		}
+	}
 }
 impl RouteParams {
 	pub fn parse(&mut self, meta: ParseNestedMeta) -> Result<()> {
@@ -295,6 +309,11 @@ impl RouteParams {
 			let value = meta.value()?;
 			let tuple_lit_val = value.parse::<TokenTree>()?;
 			self.path = Some(tuple_lit_val);
+			Ok(())
+		} else if meta.path.is_ident("custom_test_auth") {
+			let value = meta.value()?;
+			let custom_test_auth = value.parse::<Ident>()?;
+			self.custom_test_auth = Some(custom_test_auth);
 			Ok(())
 		} else {
 			Err(meta.error("unsupported route property"))
