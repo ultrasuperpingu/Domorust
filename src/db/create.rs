@@ -773,9 +773,12 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 			if let Some(s) = sVal {
 				sv = s;
 			}
+
 			let type_desc=DEVICE_TYPES_DESC.get(&(typ as u8)).unwrap_or(&("",""));
 			if type_desc.0 == "Temp" {
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Temperature', 2, '°C', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				if !sv.is_empty() {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Temperature', 2, '°C', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				}
 			}
 			else if type_desc.0 == "Temp + Humidity" {
 				let data=sv.split(';').collect::<Vec<&str>>();
@@ -809,10 +812,10 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 			else if type_desc.0 == "General" {
 				let sub_type_desc=DEVICE_SUBTYPES_DESC.get(&(typ, styp));
 				if let Some(sub_type_desc) = sub_type_desc {
-					if *sub_type_desc == "kWh" {
+					if *sub_type_desc == "kWh" && !sv.is_empty() {
 						let data=sv.split(';').collect::<Vec<&str>>();
-						connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter', 1, 'kWh', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
-						connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage', 2, 'W', TRUE, ?1, ?2, ?3)", (data[4], id, &lastUp))?;
+						connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Counter', 2, 'kWh', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
+						connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage', 2, 'W', TRUE, ?1, ?2, ?3)", (data[1], id, &lastUp))?;
 					} else {
 						connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, StringValue, DeviceID, LastUpdate) VALUES ('Value', 3, ', FALSE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
 					}
@@ -835,49 +838,72 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 			}
 			else if type_desc.0 == "P1 Smart Meter" {
 				let data=sv.split(';').collect::<Vec<&str>>();
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter1', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter2', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[1], id, &lastUp))?;
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter3', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[2], id, &lastUp))?;
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter4', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[3], id, &lastUp))?;
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage1', 2, 'W', TRUE, ?1, ?2, ?3)", (data[4], id, &lastUp))?;
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage2', 2, 'W', TRUE, ?1, ?2, ?3)", (data[5], id, &lastUp))?;
+				if data.len()>=6 {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter1', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter2', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[1], id, &lastUp))?;
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter3', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[2], id, &lastUp))?;
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter4', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[3], id, &lastUp))?;
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage1', 2, 'W', TRUE, ?1, ?2, ?3)", (data[4], id, &lastUp))?;
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage2', 2, 'W', TRUE, ?1, ?2, ?3)", (data[5], id, &lastUp))?;
+				}
 			}
 			else if type_desc.0 == "Rain" {
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Rain', 2, 'mm/h', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				let data=sv.split(';').collect::<Vec<&str>>();
+				if data.len()>=2 {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Rate', 2, 'mm/h', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Cumul', 2, 'mm', TRUE, ?1, ?2, ?3)", (data[1], id, &lastUp))?;
+				}
 			}
 			else if type_desc.0.starts_with("Thermostat") {
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('CommandTemperature', 2, '°C', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				if !sv.is_empty() {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('CommandTemperature', 2, '°C', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				}
 			}
 			else if type_desc.0 == "Usage" {
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage', 2, '??', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				if !sv.is_empty() {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage', 2, '??', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				}
 			}
 			else if type_desc.0 == "UV" {
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('UV', 1, '??', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				let data=sv.split(';').collect::<Vec<&str>>();
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('UV', 2, 'UVI', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
 			}
 			else if type_desc.0 == "Gas" {
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Gas', 2, 'm^3', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				if !sv.is_empty() {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Gas', 2, 'm^3', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				}
 			}
 			else if type_desc.0 == "Solar" {
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Solar', 2, '??', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				if !sv.is_empty() {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Solar', 2, '??', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				}
 			}
 			else if type_desc.0 == "Water" {
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Water', 2, 'm^3', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				if !sv.is_empty() {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Water', 2, 'm^3', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				}
 			}
 			else if type_desc.0 == "Water Level" {
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('WaterLevel', 2, 'm', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				if !sv.is_empty() {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('WaterLevel', 2, 'm', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				}
 			}
 			else if type_desc.0 == "Weight" {
 				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Weight', 2, 'kg', TRUE, ?1, ?2, ?3)", (nVal, id, &lastUp))?;
 			}
 			else if type_desc.0 == "Wind" {
 				let data=sv.split(';').collect::<Vec<&str>>();
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Angle', 2, '°', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, StringValue, DeviceID, LastUpdate) VALUES ('Direction', 3, '', FALSE, ?1, ?2, ?3)", (data[1], id, &lastUp))?;
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Speed', 1, 'm/s', TRUE, ?1, ?2, ?3)", (data[2], id, &lastUp))?;
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Gust', 1, 'm/s', TRUE, ?1, ?2, ?3)", (data[3], id, &lastUp))?;
+				if data.len() >= 4 {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Angle', 2, '°', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, StringValue, DeviceID, LastUpdate) VALUES ('Direction', 3, '', FALSE, ?1, ?2, ?3)", (data[1], id, &lastUp))?;
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Speed', 1, 'm/s', TRUE, ?1, ?2, ?3)", (data[2], id, &lastUp))?;
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Gust', 1, 'm/s', TRUE, ?1, ?2, ?3)", (data[3], id, &lastUp))?;
+				}
 			}
 			else if type_desc.0 == "Setpoint" {
-				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('CommandTemperature', 2, '°C', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				if !sv.is_empty() {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('CommandTemperature', 2, '°C', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				}
 			}
 			else if !sv.is_empty() {
 				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, StringValue, DeviceID, LastUpdate) VALUES ('Value', 3, '', FALSE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
@@ -890,13 +916,13 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 	}
 
 	let mut stmt = connection.prepare("SELECT DeviceRowID, Value, Counter, Date FROM Meter_Calendar")?;
-	let res = stmt.query_map([], |_row| {
+	let _res = stmt.query_map([], |_row| {
 		//TODO
 		Ok(())
 	})?;
-	for r in res.into_iter() {
-		println!("{:?}", r);
-	}
+	//for r in res.into_iter() {
+	//	println!("{:?}", r);
+	//}
 
 	ensure_constraints(&connection, "Users", sqlCreateUsers)?;
 	connection.execute("DELETE FROM UserSessions", [])?;
