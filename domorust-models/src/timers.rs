@@ -97,9 +97,10 @@ pub struct Timer {
 	pub MDay:u8,
 	pub Month:u8,
 	pub Occurence:u8,
-	#[param_name("command")]
-	pub Persistant:bool,
+	//#[param_name("command")]
+	//pub Persistant:bool,
 	#[param_name("randomness")]
+	#[column_name("UseRandomness")]
 	pub Randomness:bool,
 	#[param_name("timertype")]
 	pub Time: String,

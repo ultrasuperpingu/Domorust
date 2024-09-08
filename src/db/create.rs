@@ -5,7 +5,7 @@ use chrono::Utc;
 use domorust_models::{settings::{GPSCoord, Settings}, utils::base64, ToSqlRowFields};
 use rusqlite::Connection;
 use sha2::{Digest, Sha256};
-use crate::db;
+use crate::{db, domoticz::consts::{DEVICE_SUBTYPES_DESC, DEVICE_TYPES_DESC}};
 const DB_VERSION : u32 = 169;
 
 const sqlCreateDevices : &str = r###"
@@ -24,9 +24,9 @@ CREATE TABLE IF NOT EXISTS [Devices] (
 	[SignalLevel] INTEGER DEFAULT 0, 
 	[BatteryLevel] INTEGER DEFAULT 0, 
 	[nValue] INTEGER DEFAULT 0, 
-	[sValue] VARCHAR(200) DEFAULT null, 
+	[sValue] VARCHAR(200) DEFAULT NULL, 
 	[LastUpdate] DATETIME DEFAULT (datetime('now','localtime')),
-	[Order] INTEGER BIGINT(10) default 0, 
+	[Order] INTEGER BIGINT(10) DEFAULT 0, 
 	[AddjValue] FLOAT DEFAULT 0, 
 	[AddjMulti] FLOAT DEFAULT 1, 
 	[AddjValue2] FLOAT DEFAULT 0, 
@@ -37,10 +37,46 @@ CREATE TABLE IF NOT EXISTS [Devices] (
 	[Protected] INTEGER DEFAULT 0, 
 	[CustomImage] INTEGER DEFAULT 0, 
 	[Description] VARCHAR(200) DEFAULT '', 
-	[Options] TEXT DEFAULT null, 
-	[Color] TEXT DEFAULT NULL
+	[Options] TEXT DEFAULT NULL, 
+	[Color] TEXT DEFAULT NULL,
+	[WidgetType] TEXT NOT NULL DEFAULT 'generic',
+	[Category] TEXT NOT NULL DEFAULT ''
 );"###;
-
+const sqlCreateDevicesData : &str = r###"
+CREATE TABLE IF NOT EXISTS [DevicesData] (
+	[ID] INTEGER PRIMARY KEY,
+	[DeviceID] INTEGER,
+	[Name] VARCHAR(100) NOT NULL,
+	[Unit] VARCHAR(100) NOT NULL DEFAULT '',
+	[Type] u8 DEFAULT 0,
+	[HistoriseShort] BOOL NOT NULL DEFAULT TRUE,
+	[Historise] BOOL NOT NULL DEFAULT FALSE,
+	[BoolValue] BOOL,
+	[IntValue] INTEGER,
+	[FloatValue] REAL,
+	[StringValue] TEXT,
+	[ColorValue] TEXT,
+	[LastUpdate] DATETIME DEFAULT (datetime('now','localtime')),
+	FOREIGN KEY ([DeviceID]) REFERENCES Devices(ID)
+);"###;
+const sqlCreateDevicesDataHistory : &str = r###"
+CREATE TABLE IF NOT EXISTS [DevicesDataHistory] (
+	[ID] INTEGER PRIMARY KEY,
+	[DeviceID] INTEGER,
+	[Name] VARCHAR(100) NOT NULL,
+	[Type] INTEGER NOT NULL, -- 0: summary 5min, 1: summary day
+	[BoolValue] BOOL,
+	[IntAvg] INTEGER,
+	[IntMin] INTEGER,
+	[IntMax] INTEGER,
+	[FloatAvg] REAL,
+	[FloatMin] REAL,
+	[FloatMax] REAL,
+	[StringValue] TEXT,
+	[ColorValue] TEXT,
+	[Date] DATETIME NOT NULL,
+	FOREIGN KEY ([DeviceID]) REFERENCES Devices(ID)
+);"###;
 const sqlCreateDevicesTrigger : &str = r###"
 CREATE TRIGGER IF NOT EXISTS devicestatusupdate AFTER INSERT ON Devices
 BEGIN
@@ -52,7 +88,7 @@ CREATE TABLE IF NOT EXISTS [LightingLog] (
 	[DeviceRowID] BIGINT(10) NOT NULL, 
 	[nValue] INTEGER DEFAULT 0, 
 	[sValue] VARCHAR(200), 
-	[User] VARCHAR(100) DEFAULT (''), 
+	[User] VARCHAR(100) DEFAULT '', 
 	[Date] DATETIME DEFAULT (datetime('now','localtime'))
 );"###;
 
@@ -60,7 +96,7 @@ const sqlCreateSceneLog : &str = r###"
 CREATE TABLE IF NOT EXISTS [SceneLog] (
 	[SceneRowID] BIGINT(10) NOT NULL, 
 	[nValue] INTEGER DEFAULT 0, 
-	[User] VARCHAR(100) DEFAULT (''), 
+	[User] VARCHAR(100) DEFAULT '', 
 	[Date] DATETIME DEFAULT (datetime('now','localtime'))
 );"###;
 
@@ -206,9 +242,9 @@ CREATE TABLE IF NOT EXISTS [Notifications] (
 	[Active] BOOLEAN DEFAULT true, 
 	[DeviceRowID] BIGINT(10) NOT NULL, 
 	[Params] VARCHAR(100), 
-	[CustomMessage] VARCHAR(300) DEFAULT (''), 
+	[CustomMessage] VARCHAR(300) DEFAULT '', 
 	[CustomAction] VARCHAR(200) DEFAULT '', 
-	[ActiveSystems] VARCHAR(200) DEFAULT (''), 
+	[ActiveSystems] VARCHAR(200) DEFAULT '', 
 	[Priority] INTEGER default 0, 
 	[SendAlways] INTEGER default 0, 
 	[LastSend] DATETIME DEFAULT 0
@@ -223,10 +259,10 @@ CREATE TABLE IF NOT EXISTS [Hardware] (
 	[LogLevel] INTEGER default 7, -- LOG_NORM + LOG_STATUS + LOG_ERROR
 	[Address] VARCHAR(200), 
 	[Port] INTEGER, 
-	[SerialPort] TEXT DEFAULT (''), 
+	[SerialPort] TEXT DEFAULT '', 
 	[Username] VARCHAR(100), 
 	[Password] VARCHAR(100), 
-	[Extra] TEXT DEFAULT (''),
+	[Extra] TEXT DEFAULT '',
 	[Mode1] CHAR DEFAULT 0, 
 	[Mode2] CHAR DEFAULT 0, 
 	[Mode3] CHAR DEFAULT 0, 
@@ -234,7 +270,7 @@ CREATE TABLE IF NOT EXISTS [Hardware] (
 	[Mode5] CHAR DEFAULT 0, 
 	[Mode6] CHAR DEFAULT 0, 
 	[DataTimeout] INTEGER DEFAULT 0, 
-	[Configuration] TEXT DEFAULT ('')
+	[Configuration] TEXT DEFAULT ''
 );"###;
 
 const sqlCreateUsers : &str = r###"
@@ -284,9 +320,9 @@ CREATE TABLE IF NOT EXISTS [Cameras] (
 	[Port] INTEGER, 
 	[Protocol] INTEGER DEFAULT 0, 
 	[AspectRatio] INTEGER DEFAULT 0, -- 0=4:3, 1=16:9
-	[Username] VARCHAR(100) DEFAULT (''), 
-	[Password] VARCHAR(100) DEFAULT (''), 
-	[ImageURL] VARCHAR(200) DEFAULT ('')
+	[Username] VARCHAR(100) DEFAULT '', 
+	[Password] VARCHAR(100) DEFAULT '', 
+	[ImageURL] VARCHAR(200) DEFAULT ''
 );"###;
 
 const sqlCreateCamerasActiveDevices : &str = r###"
@@ -627,8 +663,8 @@ CREATE TABLE IF NOT EXISTS [Applications](
 );"###;
 
 pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
-	if !Path::new("domorust.db").exists() && Path::new("domoticz.db").exists() {
-		std::fs::copy("domoticz.db", "domorust.db")?;
+	if !Path::new("domorust.db").exists() && Path::new("Domoticz.db").exists() {
+		std::fs::copy("Domoticz.db", "domorust.db")?;
 		let connection=Connection::open("domorust.db")?;
 		let dbversion = crate::db::settings::get_setting_int("DB_Version")?;
 		#[allow(clippy::comparison_chain)]
@@ -674,6 +710,7 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 	let location = connection.query_row("Select sValue from Preferences WHERE Key='Location'", [], |row| {
 		row.get::<usize, GPSCoord>(0)
 	})?;
+	
 	connection.execute("INSERT INTO Preferences (Key, fValue) VALUES ('Latitude', ?1)", [location.Latitude])?;
 	connection.execute("INSERT INTO Preferences (Key, fValue) VALUES ('Longitude', ?1)", [location.Longitude])?;
 	//connection.execute("DELETE FROM Preferences WHERE Key='Location'", [])?;
@@ -692,6 +729,13 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 	connection.execute("DROP TABLE ToonDevices", [])?;
 	connection.execute("DROP TABLE ZWaveNodes", [])?;
 	
+	connection.execute("ALTER TABLE Devices ADD WidgetType TEXT", [])?;
+	connection.execute("UPDATE Devices SET WidgetType = 'generic'", [])?;
+	// TODO: set widgettype from domoticz type
+	connection.execute("ALTER TABLE Devices ADD Category TEXT", [])?;
+	// TODO: set category from domoticz type
+	
+	
 	let mut stmt = connection.prepare("SELECT ID, Username FROM Users")?;
 	let id_users : Vec<Result<(usize, String), _>>= stmt.query_map([], |row| {
 		let id=row.get::<usize, usize>(0)?;
@@ -705,8 +749,158 @@ pub fn migrate_from_domoticz() -> Result<bool, Box<dyn Error>> {
 		let salt=format!("{:X}",Sha256::digest(Utc::now().naive_local().to_string()+usernamedec.as_str()));
 		connection.execute("UPDATE Users SET Username=?1, Salt=?3 WHERE ID=?2", (usernamedec,id,salt))?;
 	}
+	connection.execute(sqlCreateDevicesData, [])?;
+	connection.execute(sqlCreateDevicesDataHistory, [])?;
+	let mut stmt = connection.prepare("SELECT ID, nValue, sValue, Color, Type, SubType, LastUpdate FROM Devices")?;
+	let res = stmt.query_map([], |row| {
+		let id=row.get::<usize, i64>(0)?;
+		let nVal=row.get::<usize, i64>(1)?;
+		let sVal = row.get::<usize, Option<String>>(2)?;
+		
+		let cVal = row.get::<usize, Option<String>>(3)?;
+		let typ=row.get::<usize, u8>(4)?;
+		let styp=row.get::<usize, u8>(5)?;
+		let lastUp = row.get::<usize, String>(6)?;
+		let mut done=false;
+		if let Some(c) = cVal {
+			if !c.is_empty() {
+				connection.execute("INSERT INTO DevicesData (Name, Type, ColorValue, DeviceID, LastUpdate) VALUES('Color', 4, ?1, ?2, ?3)", (c,id, &lastUp))?;
+				done=true;
+			}
+		}
+		if !done {
+			let mut sv=String::new();
+			if let Some(s) = sVal {
+				sv = s;
+			}
+			let type_desc=DEVICE_TYPES_DESC.get(&(typ as u8)).unwrap_or(&("",""));
+			if type_desc.0 == "Temp" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Temperature', 2, '°C', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Temp + Humidity" {
+				let data=sv.split(';').collect::<Vec<&str>>();
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Temperature', 2, '°C', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Humidity', 2, '%', TRUE, ?1, ?2, ?3)", (data[1], id, &lastUp))?;
+			}
+			else if type_desc.0 == "Temp + Humidity + Baro" {
+				let data=sv.split(';').collect::<Vec<&str>>();
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Temperature', 2, '°C', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Humidity', 1, '%', TRUE, ?1, ?2, ?3)", (data[1], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Barometer', 1, 'hPa', TRUE, ?1, ?2, ?3)", (data[2], id, &lastUp))?;
+			}
+			else if type_desc.0 == "Air Quality" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Value', 1, '', TRUE, ?1, ?2, ?3)", (nVal, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Barometer" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Barometer', 1, 'hPa', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Blinds" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Value', 1, '', TRUE, ?1, ?2, ?3)", (nVal, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Chime" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Value', 1, '', TRUE, ?1, ?2, ?3)", (nVal, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Color Switch" {
+				//should be done
+			}
+			else if type_desc.0 == "Fan" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Speed', 1, 'rpm', TRUE, ?1, ?2, ?3)", (nVal, id, &lastUp))?;
+			}
+			else if type_desc.0 == "General" {
+				let sub_type_desc=DEVICE_SUBTYPES_DESC.get(&(typ, styp));
+				if let Some(sub_type_desc) = sub_type_desc {
+					if *sub_type_desc == "kWh" {
+						let data=sv.split(';').collect::<Vec<&str>>();
+						connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter', 1, 'kWh', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
+						connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage', 2, 'W', TRUE, ?1, ?2, ?3)", (data[4], id, &lastUp))?;
+					} else {
+						connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, StringValue, DeviceID, LastUpdate) VALUES ('Value', 3, ', FALSE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+					}
+				}
+				else {
+					connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, StringValue, DeviceID, LastUpdate) VALUES ('Value', 3, ', FALSE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+				}
+			}
+			else if type_desc.0 == "Heating" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Value', '', 1, TRUE, ?1, ?2, ?3)", (nVal, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Humidity" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Humidity', 1, '%', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0.starts_with("Lighting") {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Value', 1, '', TRUE, ?1, ?2, ?3)", (nVal, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Lux" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Lux', 2, 'lux', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0 == "P1 Smart Meter" {
+				let data=sv.split(';').collect::<Vec<&str>>();
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter1', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter2', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[1], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter3', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[2], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Counter4', 1, 'Wh', TRUE, ?1, ?2, ?3)", (data[3], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage1', 2, 'W', TRUE, ?1, ?2, ?3)", (data[4], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage2', 2, 'W', TRUE, ?1, ?2, ?3)", (data[5], id, &lastUp))?;
+			}
+			else if type_desc.0 == "Rain" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Rain', 2, 'mm/h', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0.starts_with("Thermostat") {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('CommandTemperature', 2, '°C', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Usage" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Usage', 2, '??', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0 == "UV" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('UV', 1, '??', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Gas" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Gas', 2, 'm^3', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Solar" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Solar', 2, '??', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Water" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Water', 2, 'm^3', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Water Level" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('WaterLevel', 2, 'm', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Weight" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Weight', 2, 'kg', TRUE, ?1, ?2, ?3)", (nVal, id, &lastUp))?;
+			}
+			else if type_desc.0 == "Wind" {
+				let data=sv.split(';').collect::<Vec<&str>>();
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('Angle', 2, '°', TRUE, ?1, ?2, ?3)", (data[0], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, StringValue, DeviceID, LastUpdate) VALUES ('Direction', 3, '', FALSE, ?1, ?2, ?3)", (data[1], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Speed', 1, 'm/s', TRUE, ?1, ?2, ?3)", (data[2], id, &lastUp))?;
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, IntValue, DeviceID, LastUpdate) VALUES ('Gust', 1, 'm/s', TRUE, ?1, ?2, ?3)", (data[3], id, &lastUp))?;
+			}
+			else if type_desc.0 == "Setpoint" {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, FloatValue, DeviceID, LastUpdate) VALUES ('CommandTemperature', 2, '°C', TRUE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+			else if !sv.is_empty() {
+				connection.execute("INSERT INTO DevicesData (Name, Type, Unit, Historise, StringValue, DeviceID, LastUpdate) VALUES ('Value', 3, '', FALSE, ?1, ?2, ?3)", (sv, id, &lastUp))?;
+			}
+		}
+		Ok(())
+	})?;
+	for _r in res.into_iter() {
+		//println!("{:?}", r);
+	}
+
+	let mut stmt = connection.prepare("SELECT DeviceRowID, Value, Counter, Date FROM Meter_Calendar")?;
+	let res = stmt.query_map([], |_row| {
+		//TODO
+		Ok(())
+	})?;
+	for r in res.into_iter() {
+		println!("{:?}", r);
+	}
+
 	ensure_constraints(&connection, "Users", sqlCreateUsers)?;
 	connection.execute("DELETE FROM UserSessions", [])?;
+	
 	Ok(true)
 }
 
@@ -718,6 +912,7 @@ fn ensure_constraints(connection:&Connection, table:&str, createString:&str) -> 
 	connection.execute(("INSERT INTO ".to_string() + table + " SELECT * FROM " + table + "_old;").as_str(), [])?;
 	connection.execute("COMMIT;", [])?;
 	connection.execute("PRAGMA foreign_keys=on;", [])?;
+	connection.execute(("DROP TABLE ".to_string()+table+"_old").as_str(), [])?;
 	Ok(())
 }
 
@@ -725,6 +920,8 @@ pub fn create_tables_if_needed() -> Result<(), rusqlite::Error> {
 	let connection=Connection::open("domorust.db")?;
 	connection.execute("BEGIN TRANSACTION;", [])?;
 	connection.execute(sqlCreateDevices, [])?;
+	connection.execute(sqlCreateDevicesData, [])?;
+	connection.execute(sqlCreateDevicesDataHistory, [])?;
 	connection.execute(sqlCreateDevicesTrigger, [])?;
 	connection.execute(sqlCreateLightingLog, [])?;
 	connection.execute(sqlCreateSceneLog, [])?;
@@ -783,43 +980,43 @@ pub fn create_tables_if_needed() -> Result<(), rusqlite::Error> {
 	connection.execute(sqlCreateMobileDevices, [])?;
 	connection.execute(sqlCreateApplications, [])?;
 	//Add indexes to log tables
-	connection.execute("create index if not exists ds_hduts_idx	on Devices(HardwareID, DeviceID, Unit, Type, SubType);", [])?;
-	connection.execute("create index if not exists f_id_idx		on Fan(DeviceRowID);", [])?;
-	connection.execute("create index if not exists f_id_date_idx   on Fan(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists fc_id_idx	   on Fan_Calendar(DeviceRowID);", [])?;
-	connection.execute("create index if not exists fc_id_date_idx  on Fan_Calendar(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists ll_id_idx	   on LightingLog(DeviceRowID);", [])?;
-	connection.execute("create index if not exists ll_id_date_idx  on LightingLog(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists sl_id_idx	   on SceneLog(SceneRowID);", [])?;
-	connection.execute("create index if not exists sl_id_date_idx  on SceneLog(SceneRowID, Date);", [])?;
-	connection.execute("create index if not exists m_id_idx		on Meter(DeviceRowID);", [])?;
-	connection.execute("create index if not exists m_id_date_idx   on Meter(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists mc_id_idx	   on Meter_Calendar(DeviceRowID);", [])?;
-	connection.execute("create index if not exists mc_id_date_idx  on Meter_Calendar(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists mm_id_idx	   on MultiMeter(DeviceRowID);", [])?;
-	connection.execute("create index if not exists mm_id_date_idx  on MultiMeter(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists mmc_id_idx	  on MultiMeter_Calendar(DeviceRowID);", [])?;
-	connection.execute("create index if not exists mmc_id_date_idx on MultiMeter_Calendar(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists p_id_idx		on Percentage(DeviceRowID);", [])?;
-	connection.execute("create index if not exists p_id_date_idx   on Percentage(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists pc_id_idx	   on Percentage_Calendar(DeviceRowID);", [])?;
-	connection.execute("create index if not exists pc_id_date_idx  on Percentage_Calendar(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists r_id_idx		on Rain(DeviceRowID);", [])?;
-	connection.execute("create index if not exists r_id_date_idx   on Rain(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists rc_id_idx	   on Rain_Calendar(DeviceRowID);", [])?;
-	connection.execute("create index if not exists rc_id_date_idx  on Rain_Calendar(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists t_id_idx		on Temperature(DeviceRowID);", [])?;
-	connection.execute("create index if not exists t_id_date_idx   on Temperature(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists tc_id_idx	   on Temperature_Calendar(DeviceRowID);", [])?;
-	connection.execute("create index if not exists tc_id_date_idx  on Temperature_Calendar(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists u_id_idx		on UV(DeviceRowID);", [])?;
-	connection.execute("create index if not exists u_id_date_idx   on UV(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists uv_id_idx	   on UV_Calendar(DeviceRowID);", [])?;
-	connection.execute("create index if not exists uv_id_date_idx  on UV_Calendar(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists w_id_idx		on Wind(DeviceRowID);", [])?;
-	connection.execute("create index if not exists w_id_date_idx   on Wind(DeviceRowID, Date);", [])?;
-	connection.execute("create index if not exists wc_id_idx	   on Wind_Calendar(DeviceRowID);", [])?;
-	connection.execute("create index if not exists wc_id_date_idx  on Wind_Calendar(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS ds_hduts_idx	on Devices(HardwareID, DeviceID, Unit, Type, SubType);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS f_id_idx		on Fan(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS f_id_date_idx   on Fan(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS fc_id_idx	   on Fan_Calendar(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS fc_id_date_idx  on Fan_Calendar(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS ll_id_idx	   on LightingLog(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS ll_id_date_idx  on LightingLog(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS sl_id_idx	   on SceneLog(SceneRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS sl_id_date_idx  on SceneLog(SceneRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS m_id_idx		on Meter(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS m_id_date_idx   on Meter(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS mc_id_idx	   on Meter_Calendar(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS mc_id_date_idx  on Meter_Calendar(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS mm_id_idx	   on MultiMeter(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS mm_id_date_idx  on MultiMeter(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS mmc_id_idx	  on MultiMeter_Calendar(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS mmc_id_date_idx on MultiMeter_Calendar(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS p_id_idx		on Percentage(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS p_id_date_idx   on Percentage(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS pc_id_idx	   on Percentage_Calendar(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS pc_id_date_idx  on Percentage_Calendar(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS r_id_idx		on Rain(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS r_id_date_idx   on Rain(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS rc_id_idx	   on Rain_Calendar(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS rc_id_date_idx  on Rain_Calendar(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS t_id_idx		on Temperature(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS t_id_date_idx   on Temperature(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS tc_id_idx	   on Temperature_Calendar(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS tc_id_date_idx  on Temperature_Calendar(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS u_id_idx		on UV(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS u_id_date_idx   on UV(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS uv_id_idx	   on UV_Calendar(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS uv_id_date_idx  on UV_Calendar(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS w_id_idx		on Wind(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS w_id_date_idx   on Wind(DeviceRowID, Date);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS wc_id_idx	   on Wind_Calendar(DeviceRowID);", [])?;
+	connection.execute("CREATE INDEX IF NOT EXISTS wc_id_date_idx  on Wind_Calendar(DeviceRowID, Date);", [])?;
 	connection.execute("END TRANSACTION;", [])?;
 	Ok(())
 }

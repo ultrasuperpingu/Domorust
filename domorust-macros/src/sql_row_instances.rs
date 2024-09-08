@@ -102,6 +102,9 @@ pub fn expand_derive_fromsql_table(input: &syn::DeriveInput) -> syn::Result<Toke
 			}
 		});
 	}
+	if !stru.custom_select_columns.is_empty() {
+		columns_list = stru.custom_select_columns;
+	}
 	let expanded = quote! {
 		impl FromSqlTable for #struct_name {
 			fn get_items_from_table(connection:&rusqlite::Connection,

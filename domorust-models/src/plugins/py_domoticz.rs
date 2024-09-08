@@ -3,7 +3,7 @@ use std::{collections::HashMap, error::Error, path::PathBuf};
 use pyo3::prelude::*;
 use serde::Serialize;
 
-use crate::{connection::IConnection, device::{Device, DeviceData}, hardware::{HardwareData, HardwareTypeData, IHardware, IHardwareType}};
+use crate::{connection::IConnection, device::{Device, DeviceType}, hardware::{HardwareData, HardwareTypeData, IHardware, IHardwareType}};
 
 use super::{module_call_function, module_call_function1, set_module_context, PyConnection};
 
@@ -121,7 +121,7 @@ impl<'a> IHardware for PyHardware<'a> {
 		todo!()
 	}
 
-	fn get_devices(&self) -> Vec<Device> {
+	fn get_devices(&self) -> Vec<DeviceType> {
 		let mut res=vec![];
 		for d in &self.devices {
 			res.push(d.clone().into())
@@ -176,11 +176,11 @@ impl IHardwareType for PyHardwareType {
 #[pyclass]
 #[pyo3(name="Device")]
 pub struct PyDevice {
-	pub device:DeviceData
+	pub device:Device
 }
-impl Into<Device> for PyDevice {
-	fn into(self) -> Device {
-		Device::Python(self)
+impl Into<DeviceType> for PyDevice {
+	fn into(self) -> DeviceType {
+		DeviceType::Python(self)
 	}
 }
 #[pymethods]
@@ -190,7 +190,7 @@ impl PyDevice {
 	#[pyo3(signature = (Name,Unit,TypeName="",Type=1,Subtype=1,Switchtype=1,Image=-1,Used=false,DeviceID=""))]
 	#[allow(clippy::too_many_arguments)]
 	pub fn new(Name:&str, Unit:usize, TypeName:&str, Type:usize, Subtype:usize, Switchtype:usize, Image:i32, Used:bool, DeviceID:&str) -> Self {
-		let d=DeviceData {
+		let d=Device {
 			Name: String::from(Name),
 			Unit,
 			Type,
@@ -229,10 +229,10 @@ impl PyDevice {
 		println!("Delete Device");
 	}
 }
-pub fn get_pydevice(d:DeviceData) -> PyDevice {
+pub fn get_pydevice(d:Device) -> PyDevice {
 	PyDevice{device:d}
 }
-pub fn get_pydevices(datas: Vec<DeviceData>) -> Vec<PyDevice> {
+pub fn get_pydevices(datas: Vec<Device>) -> Vec<PyDevice> {
 	let mut res=vec![];
 	for d in datas {
 		res.push(get_pydevice(d));

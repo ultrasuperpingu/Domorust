@@ -1,5 +1,5 @@
 use std::{collections::HashMap, error::Error};
-use domorust_models::device::DeviceData;
+use domorust_models::device::Device;
 use domorust_models::{FromHashMap, FromSqlRow, FromSqlTable, ToSqlQuery};
 use domorust_models::plans::{FloorPlan, Plan};
 use rusqlite::Connection;
@@ -70,13 +70,13 @@ pub fn delete_plan(idx:usize) -> Result<(), Box<dyn Error>> {
 	Ok(())
 }
 
-pub fn get_plan_devices(floorplanidx:usize, _params: HashMap<String, String>) -> Result<Vec<DeviceData>, Box<dyn Error>> {
+pub fn get_plan_devices(floorplanidx:usize, _params: HashMap<String, String>) -> Result<Vec<Device>, Box<dyn Error>> {
 	let connection = Connection::open("domorust.db")?;
 	let query = "SELECT * FROM Devices WHERE ID IN (SELECT DeviceRowID FROM DeviceToPlansMap WHERE PlanID = ?1)";
 	let mut stmt = connection.prepare(query)?;
 	let mut res = vec![];
 	let dev_iter=stmt.query_map([floorplanidx], |row| {
-		DeviceData::get_from_row(row)
+		Device::get_from_row(row)
 	})?;
 	for h in dev_iter.flatten() {
 		res.push(h);

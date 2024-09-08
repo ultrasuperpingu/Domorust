@@ -5,7 +5,11 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, error::Error, fmt::Display, str::FromStr};
 
 use domorust_macros::{FromHashMap, FromSqlRow, FromSqlRowFields, FromSqlTable};
-use crate::{plugins::py_domoticz::PyDevice, utils::is_nan_f32, FromHashMap, FromSqlRow, FromSqlRowFields, FromSqlTable, ParseDomorustTypeError};
+use crate::basic_data::BasicData;
+use crate::device_data::DeviceData;
+use crate::plugins::py_domoticz::PyDevice;
+use crate::utils::is_nan_f32;
+use crate::{FromHashMap, FromSqlRow, FromSqlRowFields, FromSqlTable, ParseDomorustTypeError};
 
 pub trait IDevice {
 	fn on_device_changed(&mut self);
@@ -19,32 +23,32 @@ pub trait IEffector : IDevice {
 	fn send_command(&mut self, command:u32);
 }
 #[derive(Debug, Clone)]
-pub enum Device {
+pub enum DeviceType {
 	None,
 	Python(PyDevice)
 }
-impl Device {
+impl DeviceType {
 	pub fn unwrap_python(self) -> PyDevice {
 		match self {
-			Device::Python(h) => h,
+			DeviceType::Python(h) => h,
 			_ => panic!("unwrap_python on {:?}", self)
 		}
 	}
 	pub fn is_python(&self) -> bool {
 		match self {
-			Device::Python(_) => true,
+			DeviceType::Python(_) => true,
 			_ => false
 		}
 	}
 	pub fn as_python_ref(&self) -> Option<&PyDevice> {
 		match self {
-			Device::Python(ht) => Some(&ht),
+			DeviceType::Python(ht) => Some(&ht),
 			_ => None
 		}
 	}
 	pub fn as_python_mut(&mut self) -> Option<&mut PyDevice> {
 		match self {
-			Device::Python(ht) => Some(ht),
+			DeviceType::Python(ht) => Some(ht),
 			_ => None
 		}
 	}
@@ -53,7 +57,7 @@ impl Device {
 #[derive(Clone, Debug, Default, Serialize)]
 #[derive(FromHashMap, FromSqlRow, FromSqlTable)]
 #[table_name("Devices")]
-pub struct DeviceData {
+pub struct Device {
 	pub AddjMulti : f32,
 	pub AddjMulti2 : f32,
 	pub AddjValue : f32,
@@ -66,6 +70,9 @@ pub struct DeviceData {
 	pub CustomImage : usize,
 	#[column_name("sValue")]
 	pub Data : String,
+	#[skip_field]
+	#[table_name("DevicesData")]
+	pub Data2 : Vec<DeviceData>,
 	pub Description : String,
 	pub DeviceID : String,
 	#[skip_field]

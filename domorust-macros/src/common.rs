@@ -13,6 +13,7 @@ pub(crate) struct Structure<'a> {
 	pub default_col_name:String,
 	pub default_col_index:usize,
 	pub primary_index:usize,
+	pub custom_select_columns: String,
 	pub fields: Vec<MyField<'a>>
 }
 impl<'a> Default for Structure<'a> {
@@ -26,6 +27,7 @@ impl<'a> Default for Structure<'a> {
 			default_col_name: Default::default(),
 			default_col_index: usize::MAX,
 			primary_index: usize::MAX,
+			custom_select_columns:String::new(),
 			fields: Default::default()
 		}
 	}
@@ -112,6 +114,10 @@ pub(crate) fn read_struct(input: &syn::DeriveInput) -> syn::Result<Structure> {
 				.all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
 					return Err(syn::Error::new(a.span(),"`table_name` must be [a-zA-Z0-9_-]+"))
 			}
+		}
+		if a.meta.path().is_ident("custom_select_columns") {
+			let expr: LitStr = a.parse_args().map_err(|e| {syn::Error::new(a.span(), format!("The `table_name` attribute expects integer literal: {}", e))})?;
+			stru.custom_select_columns = expr.value();
 		}
 	}
 

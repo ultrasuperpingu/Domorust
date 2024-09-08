@@ -1834,7 +1834,7 @@ pub const DEVICE_SUBTYPES_DESC_DATA : [((u8, u8), &str);358] = [
 	((pTypeGeneralSwitch, sSwitchTypeV2Phoenix), "V2Phoenix"),
 ];
 
-pub static DEVICE_SUBTYPES_DES : std::sync::LazyLock<HashMap<(u8,u8), &str>> = std::sync::LazyLock::new(|| {
+pub static DEVICE_SUBTYPES_DESC : std::sync::LazyLock<HashMap<(u8,u8), &str>> = std::sync::LazyLock::new(|| {
 	DEVICE_SUBTYPES_DESC_DATA.into()
 });
 pub const SWITCH_TYPES : [&str;22] =

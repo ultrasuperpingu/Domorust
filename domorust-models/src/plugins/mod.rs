@@ -10,7 +10,7 @@ use serde::Serialize;
 
 use crate::connection::IConnection;
 //use crate::db::hardwares::get_hardwares_data;
-use crate::device::DeviceData;
+use crate::device::Device;
 use crate::hardware::{HardwareParameter, HardwareParameterOption, HardwareTypeData, IHardware};
 
 
@@ -108,7 +108,7 @@ fn test_launch_on_start(path: &PathBuf) -> PyResult<()>
 			{"name":"Ecran Down","localip":"fe80::dcf6:e5ff:fec9:4276","type":"4096","opt":"20","pid":"801","addr":"557494"}
 			]
 			}"###),("Mode3",""),("Mode4",""),("Mode5",""),("Mode6",""),("Address",""),("Port","")].into_py_dict_bound(py));
-		let devices=HashMap::<u32, Bound<DeviceData>>::new();
+		let devices=HashMap::<u32, Bound<Device>>::new();
 		let _ = plugin.add("Devices", devices.into_py_dict_bound(py));
 		let _test = plugin.getattr("onStart")?.call0();
 		//println!("{:?}",test);

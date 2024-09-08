@@ -5,7 +5,7 @@ use serde::Serialize;
 use crate::connection::IConnection;
 use crate::plugins::py_domoticz::PyHardwareType;
 use crate::{plugins, FromHashMap, FromSqlRow, FromSqlTable};
-use crate::device::Device;
+use crate::device::DeviceType;
 //use crate::plugins;
 use crate:: utils::is_neg_or_zero;
 
@@ -34,7 +34,7 @@ pub trait IHardware : Debug {
 	fn add_manual_switch(&mut self, name: String, SwitchType: u32, Type: u32, Parameters: &HashMap<String,String>) -> Result<(), Box<dyn Error>>;
 	fn test_manual_switch(&mut self, SwitchType: u32, Type: u32, Parameters:&HashMap<String,String>) -> Result<(), Box<dyn Error>>;
 
-	fn get_devices(&self) -> Vec<Device>;
+	fn get_devices(&self) -> Vec<DeviceType>;
 
 	//fn clone_dyn(&self) -> Box<dyn IHardware+Send+Sync>;
 }

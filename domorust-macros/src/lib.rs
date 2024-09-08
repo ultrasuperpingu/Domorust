@@ -41,7 +41,7 @@ pub fn derive_fromsql_row(input: TokenStream) -> TokenStream {
 		.into()
 }
 
-#[proc_macro_derive(FromSqlTable, attributes(column_name, skip_field, table_name, primary_key))]
+#[proc_macro_derive(FromSqlTable, attributes(column_name, skip_field, table_name, primary_key, custom_select_columns))]
 pub fn derive_fromsql_table(input: TokenStream) -> TokenStream {
 	let input = parse_macro_input!(input as DeriveInput);
 	sql_row_instances::expand_derive_fromsql_table(&input)
