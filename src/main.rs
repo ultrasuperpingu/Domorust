@@ -54,7 +54,7 @@ fn setup_timer(t: &Timer, now: DateTime<Local>,latitude:f64, longitude:f64) {
 				let duration = d.signed_duration_since(now).to_std();
 				if let Ok(duration) = duration {
 					tokio::time::sleep(duration).await;
-					println!("command {}", cmd);
+					println!("command {} on device {} at {} (now:{})", cmd, t.DeviceRowID, d, Local::now());
 					let _device = db::devices::get_device(dev_id, HashMap::new()).unwrap();
 					//TODO: send command
 					setup_timer(&t, now, latitude, longitude);

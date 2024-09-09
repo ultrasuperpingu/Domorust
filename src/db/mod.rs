@@ -3,6 +3,7 @@ pub(crate) mod applications;
 pub(crate) mod create;
 pub(crate) mod custom_icons;
 pub(crate) mod devices;
+pub(crate) mod domoticz_migration;
 pub(crate) mod events_scripts;
 pub(crate) mod hardwares;
 pub(crate) mod plans;
@@ -15,8 +16,11 @@ pub(crate) mod users;
 use std::error::Error;
 
 use chrono::{Datelike, Duration, Local};
-use create::{create_tables_if_needed, migrate_from_domoticz, set_default_values};
-use domorust_models::{device::TempHumBaroData, settings::{ConfigResponseSettings, GPSCoord}, FromSqlRowFields};
+use create::{create_tables_if_needed, set_default_values};
+use domorust_models::device::TempHumBaroData;
+use domorust_models::settings::{ConfigResponseSettings, GPSCoord};
+use domorust_models::FromSqlRowFields;
+use domoticz_migration::migrate_from_domoticz;
 use rusqlite::{Connection, Result};
 
 

@@ -17,8 +17,11 @@ pub struct DeviceData {
 	pub DeviceID: u32,
 	pub Name: String,
 	pub Unit: String,
+	#[serde(skip)]
 	pub Type: u8,
+	#[serde(skip)]
 	pub HistoriseShort: bool,
+	#[serde(skip)]
 	pub Historise: bool,
 	#[skip_field]
 	pub Value: BasicData,
@@ -28,11 +31,11 @@ impl FromSqlRow for DeviceData {
 	fn get_from_row(row: &rusqlite::Row) -> Result<Self, rusqlite::Error> {
 		let typ : u8 = row.get(4)?;
 		let val = match typ {
-			0 => {BasicData::Bool(row.get(7)?)},
-			1 => {BasicData::Int(row.get(8)?)},
-			2 => {BasicData::Float(row.get(9)?)},
-			3 => {BasicData::String(row.get(10)?)},
-			4 => {BasicData::Color(row.get(11)?)},
+			0 => {BasicData::Bool(row.get("BoolValue")?)},
+			1 => {BasicData::Int(row.get("IntValue")?)},
+			2 => {BasicData::Float(row.get("FloatValue")?)},
+			3 => {BasicData::String(row.get("StringValue")?)},
+			4 => {BasicData::Color(row.get("ColorValue")?)},
 			v => {return Err(rusqlite::Error::IntegralValueOutOfRange(4, v as i64))}
 		};
 		Ok(DeviceData{
